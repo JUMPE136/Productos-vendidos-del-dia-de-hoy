@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Ventas - Negocio</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            padding-bottom: 40px;
+        }
+
+        /* Pantalla de Bloqueo / PIN */
+        #pantalla-pin {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #000000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .pin-box {
+            background-color: #1a1a1a;
+            border: 2px solid #1a73e8;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 350px;
+            width: 100%;
+        }
+
+        .pin-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.5rem;
+            text-align: center;
+            letter-spacing: 8px;
+            border-radius: 6px;
+            border: 1px solid #8ab4f8;
+            background-color: #000;
+            color: #fff;
+            margin: 15px 0;
+        }
+
+        .pin-btn {
+            background-color: #1a73e8;
+            color: #fff;
+            border: none;
+            width: 100%;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        /* Barra Superior Azul */
+        header {
+            background-color: #1a73e8;
+            padding: 12px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            background-color: #8ab4f8;
+            color: #000000;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px 15px;
+        }
+
+        /* Buscador Blanco */
+        .search-input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            background-color: #ffffff;
+            color: #000000;
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+
+        /* Contenedor de Botones de Acción (Agregar / Eliminar) */
+        .actions-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .action-banner {
+            flex: 1;
+            background-color: #8ab4f8;
+            color: #000000;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }
+
+        .action-delete {
+            background-color: #dc3545;
+            color: #ffffff;
+        }
+
+        .action-delete.active-mode {
+            background-color: #ffc107;
+            color: #000000;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { opacity: 0.8; }
+            to { opacity: 1; }
+        }
+
+        /* Vistas / Secciones */
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        /* Categorías y Productos */
+        .grid-categories, .grid-products {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        @media (min-width: 600px) {
+            .grid-categories, .grid-products {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .card-blue {
+            background-color: #8ab4f8;
+            color: #000000;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            min-height: 110px;
+            position: relative;
+            transition: transform 0.1s;
+        }
+
+        /* Estilo visual cuando está activo el modo borrar */
+        .modo-eliminar .card-blue, 
+        .modo-eliminar .list-row-historial {
+            border: 2px dashed #dc3545;
+            background-color: #f8d7da;
+            color: #842029;
+        }
+
+        .title-sec {
+            text-align: center;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        .date-sec {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #8ab4f8;
+            margin-bottom: 20px;
+        }
+
+        .list-row {
+            background-color: #8ab4f8;
+            color: #000000;
+            border-radius: 10px;
+            padding: 12px 15px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .prod-name {
+            font-size: 0.95rem;
+            flex: 1;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-minus { background-color: #dc3545; }
+        .btn-plus { background-color: #28a745; }
+
+        .btn-view-prods {
+            background-color: #1a73e8;
+            color: #ffffff;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-save-day {
+            background-color: #28a745;
+            color: #ffffff;
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1rem;
+            margin-top: 15px;
+            cursor: pointer;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: none;
+            z-index: 1000;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.85);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background-color: #000000;
+            border: 2px solid #8ab4f8;
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- PANTALLA DE BLOQUEO POR PIN -->
+    <div id="pantalla-pin">
+        <div class="pin-box">
+            <h3>🔒 ACCESO AL NEGOCIO</h3>
+            <p style="font-size: 0.85rem; color: #8ab4f8; margin-top: 5px;">Ingresa el PIN de 4 dígitos</p>
+            <input type="password" id="input-pin" class="pin-input" maxlength="4" placeholder="••••">
+            <button class="pin-btn" onclick="verificarPin()">INGRESAR</button>
+            <div id="error-pin" style="color: #dc3545; font-size: 0.85rem; margin-top: 10px; display: none;">PIN incorrecto</div>
+        </div>
+    </div>
+
+    <!-- Encabezado con NAVEGACIÓN -->
+    <header>
+        <button class="nav-btn" onclick="verPantalla('pantalla-categorias')">INICIO</button>
+        <button class="nav-btn" onclick="verPantalla('pantalla-carrito-hoy')">CARRITO HOY</button>
+        <button class="nav-btn" onclick="verPantalla('pantalla-historial')">HISTORIAL</button>
+    </header>
+
+    <div class="container">
+
+        <!-- 1. SECCIÓN CATEGORÍAS -->
+        <div id="pantalla-categorias" class="view active">
+            <input type="text" class="search-input" id="search-cat" placeholder="🔎 Buscador..." oninput="filtrarCategorias()">
+            
+            <div class="actions-group">
+                <div class="action-banner" onclick="agregarNuevaCategoria()">+ AGREGAR CATEGORÍA</div>
+                <div class="action-banner action-delete" id="btn-del-cat" onclick="toggleModoEliminarCat()">🗑️ ELIMINAR CATEGORÍA</div>
+            </div>
+
+            <div class="grid-categories" id="contenedor-categorias"></div>
+        </div>
+
+        <!-- 2. SECCIÓN PRODUCTOS -->
+        <div id="pantalla-productos" class="view">
+            <input type="text" class="search-input" id="search-prod" placeholder="🔎 Buscador..." oninput="filtrarProductos()">
+            
+            <div class="actions-group">
+                <div class="action-banner" onclick="agregarNuevoProducto()">+ AGREGAR PRODUCTO</div>
+                <div class="action-banner action-delete" id="btn-del-prod" onclick="toggleModoEliminarProd()">🗑️ ELIMINAR PRODUCTO</div>
+            </div>
+
+            <div class="grid-products" id="contenedor-productos"></div>
+        </div>
+
+        <!-- 3. SECCIÓN CARRITO DEL DÍA -->
+        <div id="pantalla-carrito-hoy" class="view">
+            <div class="title-sec">LISTADO DE PRODUCTOS DEL DÍA DE HOY</div>
+            <div class="date-sec" id="fecha-actual">FECHA - --/--/----</div>
+
+            <div id="contenedor-carrito-hoy"></div>
+
+            <button class="btn-save-day" onclick="guardarDiaEnHistorial()">💾 GUARDAR DÍA EN HISTORIAL</button>
+        </div>
+
+        <!-- 4. SECCIÓN HISTORIAL -->
+        <div id="pantalla-historial" class="view">
+            <div class="title-sec">HISTORIAL DE VENTAS POR FECHA</div>
+            
+            <div class="actions-group" style="margin-top: 15px;">
+                <div class="action-banner action-delete" id="btn-del-hist" onclick="toggleModoEliminarHist()" style="width: 100%;">🗑️ ELIMINAR UN HISTORIAL DE VENTAS</div>
+            </div>
+
+            <div id="contenedor-historial-fechas"></div>
+        </div>
+
+    </div>
+
+    <!-- Modal Detalle Historial -->
+    <div class="modal" id="modal-historial">
+        <div class="modal-content">
+            <div class="title-sec" id="modal-titulo-fecha">FECHA</div>
+            <div id="modal-lista-productos" style="margin: 20px 0;"></div>
+            <button class="btn-save-day" style="background-color: #dc3545;" onclick="cerrarModal()">CERRAR</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">✅ Agregado a la lista de hoy</div>
+
+    <script>
+        // PIN Configurable de acceso
+        const PIN_SECRETO = '1027';
+
+        // Modos de Eliminación
+        let modoEliminarCat = false;
+        let modoEliminarProd = false;
+        let modoEliminarHist = false;
+
+        function comprobarSesionPin() {
+            const sesionGuardada = localStorage.getItem('app_sesion_pin');
+            const fechaHoyStr = new Date().toDateString();
+
+            if (sesionGuardada === fechaHoyStr) {
+                document.getElementById('pantalla-pin').style.display = 'none';
+            } else {
+                document.getElementById('pantalla-pin').style.display = 'flex';
+            }
+        }
+
+        function verificarPin() {
+            const ingresado = document.getElementById('input-pin').value;
+            if (ingresado === PIN_SECRETO) {
+                localStorage.setItem('app_sesion_pin', new Date().toDateString());
+                document.getElementById('pantalla-pin').style.display = 'none';
+                document.getElementById('error-pin').style.display = 'none';
+                document.getElementById('input-pin').value = '';
+            } else {
+                document.getElementById('error-pin').style.display = 'block';
+            }
+        }
+
+        comprobarSesionPin();
+
+        // Fecha actual
+        const hoy = new Date();
+        const strFecha = `${hoy.getDate().toString().padStart(2, '0')}/${(hoy.getMonth() + 1).toString().padStart(2, '0')}/${hoy.getFullYear()}`;
+        document.getElementById('fecha-actual').innerText = `FECHA - ${strFecha}`;
+
+        // Base de Datos
+        let datos = JSON.parse(localStorage.getItem('app_ventas_test')) || {
+            categorias: [
+                { id: 'cat_bolsas', nombre: 'Bolsas' },
+                { id: 'cat_jabones', nombre: 'Jabones' },
+                { id: 'cat_papel', nombre: 'Papel de baño' }
+            ],
+            productos: [
+                { id: 'p1', catId: 'cat_bolsas', nombre: 'Bolsa de Manija 1.5 kg' },
+                { id: 'p2', catId: 'cat_bolsas', nombre: 'Bolsa de Manija 2 kg' },
+                { id: 'p3', catId: 'cat_bolsas', nombre: 'Bolsa de Basura 2 kg' },
+                { id: 'p4', catId: 'cat_jabones', nombre: 'Jabón Líquido' },
+                { id: 'p5', catId: 'cat_papel', nombre: 'Papel Élite Morado' }
+            ],
+            carritoHoy: {},
+            historialFechas: []
+        };
+
+        let catSeleccionada = null;
+
+        function guardarBD() {
+            localStorage.setItem('app_ventas_test', JSON.stringify(datos));
+        }
+
+        function verPantalla(pantallaId) {
+            desactivarTodosModosBorrar();
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(pantallaId).classList.add('active');
+
+            if (pantallaId === 'pantalla-categorias') renderCategorias();
+            if (pantallaId === 'pantalla-carrito-hoy') renderCarritoHoy();
+            if (pantallaId === 'pantalla-historial') renderHistorial();
+        }
+
+        function desactivarTodosModosBorrar() {
+            modoEliminarCat = false;
+            modoEliminarProd = false;
+            modoEliminarHist = false;
+
+            document.getElementById('contenedor-categorias').classList.remove('modo-eliminar');
+            document.getElementById('contenedor-productos').classList.remove('modo-eliminar');
+            document.getElementById('contenedor-historial-fechas').classList.remove('modo-eliminar');
+
+            document.getElementById('btn-del-cat').classList.remove('active-mode');
+            document.getElementById('btn-del-cat').innerText = '🗑️ ELIMINAR CATEGORÍA';
+
+            document.getElementById('btn-del-prod').classList.remove('active-mode');
+            document.getElementById('btn-del-prod').innerText = '🗑️ ELIMINAR PRODUCTO';
+
+            document.getElementById('btn-del-hist').classList.remove('active-mode');
+            document.getElementById('btn-del-hist').innerText = '🗑️ ELIMINAR UN HISTORIAL DE VENTAS';
+        }
+
+        // --- MANEJO DE CATEGORÍAS ---
+        function toggleModoEliminarCat() {
+            modoEliminarCat = !modoEliminarCat;
+            const btn = document.getElementById('btn-del-cat');
+            const cont = document.getElementById('contenedor-categorias');
+
+            if (modoEliminarCat) {
+                btn.classList.add('active-mode');
+                btn.innerText = '❌ CANCELAR BORRADO';
+                cont.classList.add('modo-eliminar');
+            } else {
+                btn.classList.remove('active-mode');
+                btn.innerText = '🗑️ ELIMINAR CATEGORÍA';
+                cont.classList.remove('modo-eliminar');
+            }
+        }
+
+        function renderCategorias() {
+            const cont = document.getElementById('contenedor-categorias');
+            cont.innerHTML = '';
+            datos.categorias.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+            datos.categorias.forEach(cat => {
+                const card = document.createElement('div');
+                card.className = 'card-blue';
+                card.innerHTML = `<div>🛍️</div><div style="margin-top:8px">${cat.nombre}</div>`;
+                card.onclick = () => {
+                    if (modoEliminarCat) {
+                        eliminarCategoria(cat.id, cat.nombre);
+                    } else {
+                        abrirCategoria(cat.id);
+                    }
+                };
+                cont.appendChild(card);
+            });
+        }
+
+        function eliminarCategoria(catId, nombre) {
+            if (confirm(`¿Estás seguro de eliminar la categoría "${nombre}" y todos sus productos?`)) {
+                datos.categorias = datos.categorias.filter(c => c.id !== catId);
+                datos.productos = datos.productos.filter(p => p.catId !== catId);
+                guardarBD();
+                toggleModoEliminarCat();
+                renderCategorias();
+            }
+        }
+
+        function abrirCategoria(catId) {
+            catSeleccionada = catId;
+            verPantalla('pantalla-productos');
+            renderProductos();
+        }
+
+        // --- MANEJO DE PRODUCTOS ---
+        function toggleModoEliminarProd() {
+            modoEliminarProd = !modoEliminarProd;
+            const btn = document.getElementById('btn-del-prod');
+            const cont = document.getElementById('contenedor-productos');
+
+            if (modoEliminarProd) {
+                btn.classList.add('active-mode');
+                btn.innerText = '❌ CANCELAR BORRADO';
+                cont.classList.add('modo-eliminar');
+            } else {
+                btn.classList.remove('active-mode');
+                btn.innerText = '🗑️ ELIMINAR PRODUCTO';
+                cont.classList.remove('modo-eliminar');
+            }
+        }
+
+        function renderProductos() {
+            const cont = document.getElementById('contenedor-productos');
+            cont.innerHTML = '';
+
+            let prods = datos.productos.filter(p => p.catId === catSeleccionada);
+            prods.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+            prods.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'card-blue';
+                card.innerHTML = `<div>📦</div><div style="font-size:0.85rem; margin-top:5px">${p.nombre}</div>`;
+                card.onclick = () => {
+                    if (modoEliminarProd) {
+                        eliminarProducto(p.id, p.nombre);
+                    } else {
+                        sumarAlCarrito(p.nombre);
+                    }
+                };
+                cont.appendChild(card);
+            });
+        }
+
+        function eliminarProducto(prodId, nombre) {
+            if (confirm(`¿Quieres eliminar el producto "${nombre}" de esta categoría?`)) {
+                datos.productos = datos.productos.filter(p => p.id !== prodId);
+                guardarBD();
+                toggleModoEliminarProd();
+                renderProductos();
+            }
+        }
+
+        function sumarAlCarrito(nombreProd) {
+            if (datos.carritoHoy[nombreProd]) {
+                datos.carritoHoy[nombreProd] += 1;
+            } else {
+                datos.carritoHoy[nombreProd] = 1;
+            }
+            guardarBD();
+
+            const toast = document.getElementById('toast');
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 1000);
+        }
+
+        function renderCarritoHoy() {
+            const cont = document.getElementById('contenedor-carrito-hoy');
+            cont.innerHTML = '';
+
+            let nombres = Object.keys(datos.carritoHoy);
+            nombres.sort((a, b) => a.localeCompare(b));
+
+            if (nombres.length === 0) {
+                cont.innerHTML = '<div style="text-align:center; color:#888; margin-top:20px;">No has agregado productos hoy.</div>';
+                return;
+            }
+
+            nombres.forEach(nombre => {
+                const qty = datos.carritoHoy[nombre];
+                const row = document.createElement('div');
+                row.className = 'list-row';
+                row.innerHTML = `
+                    <div class="prod-name">${nombre}</div>
+                    <div class="controls">
+                        <button class="btn-circle btn-minus" onclick="modificarCantidad('${nombre}', -1)">-</button>
+                        <span class="qty-num">${qty}</span>
+                        <button class="btn-circle btn-plus" onclick="modificarCantidad('${nombre}', 1)">+</button>
+                    </div>
+                `;
+                cont.appendChild(row);
+            });
+        }
+
+        function modificarCantidad(nombre, delta) {
+            if (datos.carritoHoy[nombre]) {
+                datos.carritoHoy[nombre] += delta;
+                if (datos.carritoHoy[nombre] <= 0) {
+                    delete datos.carritoHoy[nombre];
+                }
+                guardarBD();
+                renderCarritoHoy();
+            }
+        }
+
+        // --- MANEJO DE HISTORIAL ---
+        function toggleModoEliminarHist() {
+            modoEliminarHist = !modoEliminarHist;
+            const btn = document.getElementById('btn-del-hist');
+            const cont = document.getElementById('contenedor-historial-fechas');
+
+            if (modoEliminarHist) {
+                btn.classList.add('active-mode');
+                btn.innerText = '❌ CANCELAR BORRADO';
+                cont.classList.add('modo-eliminar');
+            } else {
+                btn.classList.remove('active-mode');
+                btn.innerText = '🗑️ ELIMINAR UN HISTORIAL DE VENTAS';
+                cont.classList.remove('modo-eliminar');
+            }
+        }
+
+        function renderHistorial() {
+            const cont = document.getElementById('contenedor-historial-fechas');
+            cont.innerHTML = '';
+
+            if (datos.historialFechas.length === 0) {
+                cont.innerHTML = '<div style="text-align:center; color:#888; margin-top:20px;">No hay historial guardado.</div>';
+                return;
+            }
+
+            datos.historialFechas.forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = 'list-row list-row-historial';
+                row.style.cursor = 'pointer';
+                row.innerHTML = `
+                    <div class="prod-name">${item.fecha}</div>
+                    <button class="btn-view-prods" onclick="event.stopPropagation(); manejarClickHistorial(${index})">VER PRODUCTOS</button>
+                `;
+                row.onclick = () => manejarClickHistorial(index);
+                cont.appendChild(row);
+            });
+        }
+
+        function manejarClickHistorial(index) {
+            if (modoEliminarHist) {
+                eliminarHistorial(index);
+            } else {
+                verDetalleHistorial(index);
+            }
+        }
+
+        function eliminarHistorial(index) {
+            const item = datos.historialFechas[index];
+            if (confirm(`¿Quieres eliminar permanentemente el registro del día ${item.fecha}?`)) {
+                datos.historialFechas.splice(index, 1);
+                guardarBD();
+                toggleModoEliminarHist();
+                renderHistorial();
+            }
+        }
+
+        function verDetalleHistorial(index) {
+            const item = datos.historialFechas[index];
+            document.getElementById('modal-titulo-fecha').innerText = `VENTAS DEL ${item.fecha}`;
+            
+            const contModal = document.getElementById('modal-lista-productos');
+            contModal.innerHTML = '';
+
+            let nombres = Object.keys(item.productos);
+            nombres.sort((a, b) => a.localeCompare(b));
+
+            nombres.forEach(nombre => {
+                const r = document.createElement('div');
+                r.className = 'list-row';
+                r.style.marginBottom = '8px';
+                r.innerHTML = `<div>${nombre}</div><div>Cant: ${item.productos[nombre]}</div>`;
+                contModal.appendChild(r);
+            });
+
+            document.getElementById('modal-historial').style.display = 'flex';
+        }
+
+        function cerrarModal() {
+            document.getElementById('modal-historial').style.display = 'none';
+        }
+
+        function guardarDiaEnHistorial() {
+            if (Object.keys(datos.carritoHoy).length === 0) {
+                alert('El carrito está vacío.');
+                return;
+            }
+
+            datos.historialFechas.unshift({
+                fecha: strFecha,
+                productos: { ...datos.carritoHoy }
+            });
+
+            datos.carritoHoy = {};
+            guardarBD();
+            alert('¡Día guardado en el Historial con éxito!');
+            verPantalla('pantalla-historial');
+        }
+
+        function agregarNuevaCategoria() {
+            const nombre = prompt('Nombre de la categoría:');
+            if (nombre) {
+                datos.categorias.push({ id: 'cat_' + Date.now(), nombre: nombre });
+                guardarBD();
+                renderCategorias();
+            }
+        }
+
+        function agregarNuevoProducto() {
+            const nombre = prompt('Nombre del producto:');
+            if (nombre && catSeleccionada) {
+                datos.productos.push({ id: 'p_' + Date.now(), catId: catSeleccionada, nombre: nombre });
+                guardarBD();
+                renderProductos();
+            }
+        }
+
+        function filtrarCategorias() {
+            const txt = document.getElementById('search-cat').value.toLowerCase();
+            document.querySelectorAll('#contenedor-categorias .card-blue').forEach(card => {
+                card.style.display = card.innerText.toLowerCase().includes(txt) ? 'flex' : 'none';
+            });
+        }
+
+        function filtrarProductos() {
+            const txt = document.getElementById('search-prod').value.toLowerCase();
+            document.querySelectorAll('#contenedor-productos .card-blue').forEach(card => {
+                card.style.display = card.innerText.toLowerCase().includes(txt) ? 'flex' : 'none';
+            });
+        }
+
+        renderCategorias();
+    </script>
+</body>
+</html>
