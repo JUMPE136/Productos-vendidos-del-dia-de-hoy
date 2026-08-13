@@ -109,15 +109,17 @@
             margin-bottom: 15px;
         }
 
-        /* Contenedor de Botones de Acción (Agregar / Eliminar) */
+        /* Contenedor de Botones de Acción */
         .actions-group {
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
 
         .action-banner {
             flex: 1;
+            min-width: 120px;
             background-color: #8ab4f8;
             color: #000000;
             padding: 12px;
@@ -126,7 +128,17 @@
             font-weight: bold;
             cursor: pointer;
             text-transform: uppercase;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
+        }
+
+        .action-edit {
+            background-color: #ffc107;
+            color: #000000;
+        }
+
+        .action-move {
+            background-color: #17a2b8;
+            color: #ffffff;
         }
 
         .action-delete {
@@ -134,9 +146,9 @@
             color: #ffffff;
         }
 
-        .action-delete.active-mode {
-            background-color: #ffc107;
-            color: #000000;
+        .action-banner.active-mode {
+            background-color: #fd7e14;
+            color: #ffffff;
             animation: pulse 1s infinite alternate;
         }
 
@@ -184,12 +196,23 @@
             transition: transform 0.1s;
         }
 
-        /* Estilo visual cuando está activo el modo borrar */
         .modo-eliminar .card-blue, 
         .modo-eliminar .list-row-historial {
             border: 2px dashed #dc3545;
             background-color: #f8d7da;
             color: #842029;
+        }
+
+        .modo-editar .card-blue {
+            border: 2px dashed #ffc107;
+            background-color: #fff3cd;
+            color: #664d03;
+        }
+
+        .modo-mover .card-blue {
+            border: 2px dashed #17a2b8;
+            background-color: #d1ecf1;
+            color: #0c5460;
         }
 
         .title-sec {
@@ -227,7 +250,7 @@
         .controls {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
         .btn-circle {
@@ -237,11 +260,21 @@
             border: none;
             color: #ffffff;
             font-weight: bold;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .btn-icon {
+            background-color: #000000;
+            color: #ffffff;
+            border: none;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
         }
 
         .btn-minus { background-color: #dc3545; }
@@ -301,9 +334,20 @@
             border-radius: 12px;
             padding: 20px;
             width: 100%;
-            max-width: 500px;
-            max-height: 80vh;
+            max-width: 550px;
+            max-height: 85vh;
             overflow-y: auto;
+        }
+
+        .badge-pos {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 4px;
         }
     </style>
 </head>
@@ -335,6 +379,7 @@
             
             <div class="actions-group">
                 <div class="action-banner" onclick="agregarNuevaCategoria()">+ AGREGAR CATEGORÍA</div>
+                <div class="action-banner action-edit" id="btn-edit-cat" onclick="toggleModoEditarCat()">✏️ EDITAR NOMBRE</div>
                 <div class="action-banner action-delete" id="btn-del-cat" onclick="toggleModoEliminarCat()">🗑️ ELIMINAR CATEGORÍA</div>
             </div>
 
@@ -347,6 +392,8 @@
             
             <div class="actions-group">
                 <div class="action-banner" onclick="agregarNuevoProducto()">+ AGREGAR PRODUCTO</div>
+                <div class="action-banner action-edit" id="btn-edit-prod" onclick="toggleModoEditarProd()">✏️ EDITAR NOMBRE</div>
+                <div class="action-banner action-move" id="btn-move-prod" onclick="toggleModoMoverProd()">↔️ MOVER DE LUGAR</div>
                 <div class="action-banner action-delete" id="btn-del-prod" onclick="toggleModoEliminarProd()">🗑️ ELIMINAR PRODUCTO</div>
             </div>
 
@@ -365,10 +412,10 @@
 
         <!-- 4. SECCIÓN HISTORIAL -->
         <div id="pantalla-historial" class="view">
-            <div class="title-sec">HISTORIAL DE VENTAS POR FECHA</div>
+            <div class="title-sec">HISTORIAL DE VENTAS POR FECHA Y HORA</div>
             
             <div class="actions-group" style="margin-top: 15px;">
-                <div class="action-banner action-delete" id="btn-del-hist" onclick="toggleModoEliminarHist()" style="width: 100%;">🗑️ ELIMINAR UN HISTORIAL DE VENTAS</div>
+                <div class="action-banner action-delete" id="btn-del-hist" onclick="toggleModoEliminarHist()" style="width: 100%;">🗑️ ELIMINAR REGISTRO COMPLETO DE DÍA</div>
             </div>
 
             <div id="contenedor-historial-fechas"></div>
@@ -379,21 +426,25 @@
     <!-- Modal Detalle Historial -->
     <div class="modal" id="modal-historial">
         <div class="modal-content">
-            <div class="title-sec" id="modal-titulo-fecha">FECHA</div>
+            <div class="title-sec" id="modal-titulo-fecha">FECHA Y HORA</div>
             <div id="modal-lista-productos" style="margin: 20px 0;"></div>
-            <button class="btn-save-day" style="background-color: #dc3545;" onclick="cerrarModal()">CERRAR</button>
+            
+            <!-- NUEVO BOTÓN PARA AGREGAR PRODUCTOS FALTANTES AL HISTORIAL -->
+            <button class="btn-save-day" style="background-color: #28a745; margin-top: 10px;" onclick="agregarProductoFaltanteHistorial()">+ AGREGAR PRODUCTO FALTANTE</button>
+            <button class="btn-save-day" style="background-color: #dc3545; margin-top: 10px;" onclick="cerrarModal()">CERRAR</button>
         </div>
     </div>
 
     <div class="toast" id="toast">✅ Agregado a la lista de hoy</div>
 
     <script>
-        // PIN Configurable de acceso
         const PIN_SECRETO = '1027';
 
-        // Modos de Eliminación
         let modoEliminarCat = false;
+        let modoEditarCat = false;
         let modoEliminarProd = false;
+        let modoEditarProd = false;
+        let modoMoverProd = false;
         let modoEliminarHist = false;
 
         function comprobarSesionPin() {
@@ -421,12 +472,10 @@
 
         comprobarSesionPin();
 
-        // Fecha actual
         const hoy = new Date();
         const strFecha = `${hoy.getDate().toString().padStart(2, '0')}/${(hoy.getMonth() + 1).toString().padStart(2, '0')}/${hoy.getFullYear()}`;
         document.getElementById('fecha-actual').innerText = `FECHA - ${strFecha}`;
 
-        // Base de Datos
         let datos = JSON.parse(localStorage.getItem('app_ventas_test')) || {
             categorias: [
                 { id: 'cat_bolsas', nombre: 'Bolsas' },
@@ -445,13 +494,14 @@
         };
 
         let catSeleccionada = null;
+        let historialIndexActual = null;
 
         function guardarBD() {
             localStorage.setItem('app_ventas_test', JSON.stringify(datos));
         }
 
         function verPantalla(pantallaId) {
-            desactivarTodosModosBorrar();
+            desactivarTodosModosEspeciales();
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById(pantallaId).classList.add('active');
 
@@ -460,27 +510,57 @@
             if (pantallaId === 'pantalla-historial') renderHistorial();
         }
 
-        function desactivarTodosModosBorrar() {
+        function desactivarTodosModosEspeciales() {
             modoEliminarCat = false;
+            modoEditarCat = false;
             modoEliminarProd = false;
+            modoEditarProd = false;
+            modoMoverProd = false;
             modoEliminarHist = false;
 
-            document.getElementById('contenedor-categorias').classList.remove('modo-eliminar');
-            document.getElementById('contenedor-productos').classList.remove('modo-eliminar');
+            document.getElementById('contenedor-categorias').classList.remove('modo-eliminar', 'modo-editar');
+            document.getElementById('contenedor-productos').classList.remove('modo-eliminar', 'modo-editar', 'modo-mover');
             document.getElementById('contenedor-historial-fechas').classList.remove('modo-eliminar');
+
+            document.getElementById('btn-edit-cat').classList.remove('active-mode');
+            document.getElementById('btn-edit-cat').innerText = '✏️ EDITAR NOMBRE';
 
             document.getElementById('btn-del-cat').classList.remove('active-mode');
             document.getElementById('btn-del-cat').innerText = '🗑️ ELIMINAR CATEGORÍA';
+
+            document.getElementById('btn-edit-prod').classList.remove('active-mode');
+            document.getElementById('btn-edit-prod').innerText = '✏️ EDITAR NOMBRE';
+
+            document.getElementById('btn-move-prod').classList.remove('active-mode');
+            document.getElementById('btn-move-prod').innerText = '↔️ MOVER DE LUGAR';
 
             document.getElementById('btn-del-prod').classList.remove('active-mode');
             document.getElementById('btn-del-prod').innerText = '🗑️ ELIMINAR PRODUCTO';
 
             document.getElementById('btn-del-hist').classList.remove('active-mode');
-            document.getElementById('btn-del-hist').innerText = '🗑️ ELIMINAR UN HISTORIAL DE VENTAS';
+            document.getElementById('btn-del-hist').innerText = '🗑️ ELIMINAR REGISTRO COMPLETO DE DÍA';
         }
 
         // --- MANEJO DE CATEGORÍAS ---
+        function toggleModoEditarCat() {
+            if (modoEliminarCat) toggleModoEliminarCat();
+            modoEditarCat = !modoEditarCat;
+            const btn = document.getElementById('btn-edit-cat');
+            const cont = document.getElementById('contenedor-categorias');
+
+            if (modoEditarCat) {
+                btn.classList.add('active-mode');
+                btn.innerText = '❌ CANCELAR EDICIÓN';
+                cont.classList.add('modo-editar');
+            } else {
+                btn.classList.remove('active-mode');
+                btn.innerText = '✏️ EDITAR NOMBRE';
+                cont.classList.remove('modo-editar');
+            }
+        }
+
         function toggleModoEliminarCat() {
+            if (modoEditarCat) toggleModoEditarCat();
             modoEliminarCat = !modoEliminarCat;
             const btn = document.getElementById('btn-del-cat');
             const cont = document.getElementById('contenedor-categorias');
@@ -499,7 +579,6 @@
         function renderCategorias() {
             const cont = document.getElementById('contenedor-categorias');
             cont.innerHTML = '';
-            datos.categorias.sort((a, b) => a.nombre.localeCompare(b.nombre));
 
             datos.categorias.forEach(cat => {
                 const card = document.createElement('div');
@@ -508,12 +587,27 @@
                 card.onclick = () => {
                     if (modoEliminarCat) {
                         eliminarCategoria(cat.id, cat.nombre);
+                    } else if (modoEditarCat) {
+                        editarCategoria(cat.id, cat.nombre);
                     } else {
                         abrirCategoria(cat.id);
                     }
                 };
                 cont.appendChild(card);
             });
+        }
+
+        function editarCategoria(catId, nombreActual) {
+            const nuevoNombre = prompt('Ingresa el nuevo nombre para esta categoría:', nombreActual);
+            if (nuevoNombre && nuevoNombre.trim() !== '') {
+                const cat = datos.categorias.find(c => c.id === catId);
+                if (cat) {
+                    cat.nombre = nuevoNombre.trim();
+                    guardarBD();
+                    toggleModoEditarCat();
+                    renderCategorias();
+                }
+            }
         }
 
         function eliminarCategoria(catId, nombre) {
@@ -533,7 +627,46 @@
         }
 
         // --- MANEJO DE PRODUCTOS ---
+        function toggleModoEditarProd() {
+            if (modoEliminarProd) toggleModoEliminarProd();
+            if (modoMoverProd) toggleModoMoverProd();
+            modoEditarProd = !modoEditarProd;
+            const btn = document.getElementById('btn-edit-prod');
+            const cont = document.getElementById('contenedor-productos');
+
+            if (modoEditarProd) {
+                btn.classList.add('active-mode');
+                btn.innerText = '❌ CANCELAR EDICIÓN';
+                cont.classList.add('modo-editar');
+            } else {
+                btn.classList.remove('active-mode');
+                btn.innerText = '✏️ EDITAR NOMBRE';
+                cont.classList.remove('modo-editar');
+            }
+        }
+
+        function toggleModoMoverProd() {
+            if (modoEditarProd) toggleModoEditarProd();
+            if (modoEliminarProd) toggleModoEliminarProd();
+            modoMoverProd = !modoMoverProd;
+            const btn = document.getElementById('btn-move-prod');
+            const cont = document.getElementById('contenedor-productos');
+
+            if (modoMoverProd) {
+                btn.classList.add('active-mode');
+                btn.innerText = '❌ CANCELAR MOVER';
+                cont.classList.add('modo-mover');
+            } else {
+                btn.classList.remove('active-mode');
+                btn.innerText = '↔️ MOVER DE LUGAR';
+                cont.classList.remove('modo-mover');
+            }
+            renderProductos();
+        }
+
         function toggleModoEliminarProd() {
+            if (modoEditarProd) toggleModoEditarProd();
+            if (modoMoverProd) toggleModoMoverProd();
             modoEliminarProd = !modoEliminarProd;
             const btn = document.getElementById('btn-del-prod');
             const cont = document.getElementById('contenedor-productos');
@@ -554,21 +687,63 @@
             cont.innerHTML = '';
 
             let prods = datos.productos.filter(p => p.catId === catSeleccionada);
-            prods.sort((a, b) => a.nombre.localeCompare(b.nombre));
 
-            prods.forEach(p => {
+            prods.forEach((p, idx) => {
                 const card = document.createElement('div');
                 card.className = 'card-blue';
-                card.innerHTML = `<div>📦</div><div style="font-size:0.85rem; margin-top:5px">${p.nombre}</div>`;
+                
+                const badge = modoMoverProd ? `<span class="badge-pos">Posición ${idx + 1}</span>` : '';
+                
+                card.innerHTML = `${badge}<div>📦</div><div style="font-size:0.85rem; margin-top:5px">${p.nombre}</div>`;
                 card.onclick = () => {
                     if (modoEliminarProd) {
                         eliminarProducto(p.id, p.nombre);
+                    } else if (modoEditarProd) {
+                        editarProducto(p.id, p.nombre);
+                    } else if (modoMoverProd) {
+                        moverProductoPosicion(p.id, p.nombre, idx + 1, prods.length);
                     } else {
                         sumarAlCarrito(p.nombre);
                     }
                 };
                 cont.appendChild(card);
             });
+        }
+
+        function moverProductoPosicion(prodId, nombreActual, posActual, total) {
+            const nuevaPosStr = prompt(`"${nombreActual}" está en la posición ${posActual}.\n¿A qué posición quieres moverlo? (Ingresa de 1 a ${total}):`, posActual);
+            
+            if (nuevaPosStr !== null) {
+                const nuevaPos = parseInt(nuevaPosStr, 10);
+                if (isNaN(nuevaPos) || nuevaPos < 1 || nuevaPos > total) {
+                    alert(`Por favor ingresa un número válido entre 1 y ${total}.`);
+                    return;
+                }
+
+                let prodsCategoria = datos.productos.filter(p => p.catId === catSeleccionada);
+                let prodsOtrasCategorias = datos.productos.filter(p => p.catId !== catSeleccionada);
+
+                const indexActual = prodsCategoria.findIndex(p => p.id === prodId);
+                const [prodMover] = prodsCategoria.splice(indexActual, 1);
+                prodsCategoria.splice(nuevaPos - 1, 0, prodMover);
+
+                datos.productos = [...prodsOtrasCategorias, ...prodsCategoria];
+                guardarBD();
+                toggleModoMoverProd();
+            }
+        }
+
+        function editarProducto(prodId, nombreActual) {
+            const nuevoNombre = prompt('Ingresa el nuevo nombre para este producto:', nombreActual);
+            if (nuevoNombre && nuevoNombre.trim() !== '') {
+                const p = datos.productos.find(item => item.id === prodId);
+                if (p) {
+                    p.nombre = nuevoNombre.trim();
+                    guardarBD();
+                    toggleModoEditarProd();
+                    renderProductos();
+                }
+            }
         }
 
         function eliminarProducto(prodId, nombre) {
@@ -598,7 +773,7 @@
             cont.innerHTML = '';
 
             let nombres = Object.keys(datos.carritoHoy);
-            nombres.sort((a, b) => a.localeCompare(b));
+            nombres.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
 
             if (nombres.length === 0) {
                 cont.innerHTML = '<div style="text-align:center; color:#888; margin-top:20px;">No has agregado productos hoy.</div>';
@@ -644,7 +819,7 @@
                 cont.classList.add('modo-eliminar');
             } else {
                 btn.classList.remove('active-mode');
-                btn.innerText = '🗑️ ELIMINAR UN HISTORIAL DE VENTAS';
+                btn.innerText = '🗑️ ELIMINAR REGISTRO COMPLETO DE DÍA';
                 cont.classList.remove('modo-eliminar');
             }
         }
@@ -663,7 +838,7 @@
                 row.className = 'list-row list-row-historial';
                 row.style.cursor = 'pointer';
                 row.innerHTML = `
-                    <div class="prod-name">${item.fecha}</div>
+                    <div class="prod-name">📅 ${item.fecha} ${item.hora ? ' - ⏰ ' + item.hora : ''}</div>
                     <button class="btn-view-prods" onclick="event.stopPropagation(); manejarClickHistorial(${index})">VER PRODUCTOS</button>
                 `;
                 row.onclick = () => manejarClickHistorial(index);
@@ -681,7 +856,7 @@
 
         function eliminarHistorial(index) {
             const item = datos.historialFechas[index];
-            if (confirm(`¿Quieres eliminar permanentemente el registro del día ${item.fecha}?`)) {
+            if (confirm(`¿Quieres eliminar permanentemente el registro del ${item.fecha}?`)) {
                 datos.historialFechas.splice(index, 1);
                 guardarBD();
                 toggleModoEliminarHist();
@@ -690,28 +865,109 @@
         }
 
         function verDetalleHistorial(index) {
+            historialIndexActual = index;
             const item = datos.historialFechas[index];
-            document.getElementById('modal-titulo-fecha').innerText = `VENTAS DEL ${item.fecha}`;
+            document.getElementById('modal-titulo-fecha').innerText = `VENTAS: ${item.fecha} (${item.hora || ''})`;
             
+            renderListaModalHistorial();
+            document.getElementById('modal-historial').style.display = 'flex';
+        }
+
+        function renderListaModalHistorial() {
             const contModal = document.getElementById('modal-lista-productos');
             contModal.innerHTML = '';
 
+            const item = datos.historialFechas[historialIndexActual];
             let nombres = Object.keys(item.productos);
-            nombres.sort((a, b) => a.localeCompare(b));
+            nombres.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+
+            if (nombres.length === 0) {
+                contModal.innerHTML = '<div style="text-align:center; color:#888;">No quedan productos en esta lista.</div>';
+                return;
+            }
 
             nombres.forEach(nombre => {
+                const qty = item.productos[nombre];
                 const r = document.createElement('div');
                 r.className = 'list-row';
                 r.style.marginBottom = '8px';
-                r.innerHTML = `<div>${nombre}</div><div>Cant: ${item.productos[nombre]}</div>`;
+                r.innerHTML = `
+                    <div class="prod-name">${nombre}</div>
+                    <div class="controls">
+                        <button class="btn-circle btn-minus" onclick="modificarCantidadHistorial('${nombre}', -1)">-</button>
+                        <span>${qty}</span>
+                        <button class="btn-circle btn-plus" onclick="modificarCantidadHistorial('${nombre}', 1)">+</button>
+                        <button class="btn-icon" onclick="renombrarProductoHistorial('${nombre}')">✏️</button>
+                        <button class="btn-icon" style="background-color:#dc3545;" onclick="eliminarProductoHistorial('${nombre}')">🗑️</button>
+                    </div>
+                `;
                 contModal.appendChild(r);
             });
+        }
 
-            document.getElementById('modal-historial').style.display = 'flex';
+        // NUEVA FUNCIÓN: Agregar un producto directamente al historial seleccionado
+        function agregarProductoFaltanteHistorial() {
+            const nombre = prompt('Ingresa el nombre del producto que quieres agregar a este historial:');
+            if (nombre && nombre.trim() !== '') {
+                const cantStr = prompt(`¿Qué cantidad de "${nombre.trim()}" vas a agregar?`, '1');
+                const cantidad = parseInt(cantStr, 10);
+
+                if (!isNaN(cantidad) && cantidad > 0) {
+                    const item = datos.historialFechas[historialIndexActual];
+                    const nombreLimpio = nombre.trim();
+
+                    if (item.productos[nombreLimpio]) {
+                        item.productos[nombreLimpio] += cantidad;
+                    } else {
+                        item.productos[nombreLimpio] = cantidad;
+                    }
+
+                    guardarBD();
+                    renderListaModalHistorial();
+                } else {
+                    alert('Por favor ingresa una cantidad válida mayor a 0.');
+                }
+            }
+        }
+
+        function modificarCantidadHistorial(nombreProd, delta) {
+            const item = datos.historialFechas[historialIndexActual];
+            if (item.productos[nombreProd]) {
+                item.productos[nombreProd] += delta;
+                if (item.productos[nombreProd] <= 0) {
+                    delete item.productos[nombreProd];
+                }
+                guardarBD();
+                renderListaModalHistorial();
+            }
+        }
+
+        function renombrarProductoHistorial(nombreViejo) {
+            const nuevoNombre = prompt('Cambiar nombre del producto en este historial:', nombreViejo);
+            if (nuevoNombre && nuevoNombre.trim() !== '' && nuevoNombre.trim() !== nombreViejo) {
+                const item = datos.historialFechas[historialIndexActual];
+                const cantidadActual = item.productos[nombreViejo];
+                
+                delete item.productos[nombreViejo];
+                item.productos[nuevoNombre.trim()] = cantidadActual;
+                
+                guardarBD();
+                renderListaModalHistorial();
+            }
+        }
+
+        function eliminarProductoHistorial(nombreProd) {
+            if (confirm(`¿Quitar "${nombreProd}" de este registro guardado?`)) {
+                const item = datos.historialFechas[historialIndexActual];
+                delete item.productos[nombreProd];
+                guardarBD();
+                renderListaModalHistorial();
+            }
         }
 
         function cerrarModal() {
             document.getElementById('modal-historial').style.display = 'none';
+            renderHistorial();
         }
 
         function guardarDiaEnHistorial() {
@@ -720,21 +976,27 @@
                 return;
             }
 
-            datos.historialFechas.unshift({
-                fecha: strFecha,
-                productos: { ...datos.carritoHoy }
-            });
+            if (confirm('¿Seguro que quieres guardar el carrito del día de hoy en el historial?')) {
+                const ahora = new Date();
+                const horaStr = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 
-            datos.carritoHoy = {};
-            guardarBD();
-            alert('¡Día guardado en el Historial con éxito!');
-            verPantalla('pantalla-historial');
+                datos.historialFechas.unshift({
+                    fecha: strFecha,
+                    hora: horaStr,
+                    productos: { ...datos.carritoHoy }
+                });
+
+                datos.carritoHoy = {};
+                guardarBD();
+                alert('¡Día guardado en el Historial con éxito!');
+                verPantalla('pantalla-historial');
+            }
         }
 
         function agregarNuevaCategoria() {
             const nombre = prompt('Nombre de la categoría:');
             if (nombre) {
-                datos.categorias.push({ id: 'cat_' + Date.now(), nombre: nombre });
+                datos.categorias.push({ id: 'cat_' + Date.now(), nombre: nombre.trim() });
                 guardarBD();
                 renderCategorias();
             }
@@ -743,7 +1005,7 @@
         function agregarNuevoProducto() {
             const nombre = prompt('Nombre del producto:');
             if (nombre && catSeleccionada) {
-                datos.productos.push({ id: 'p_' + Date.now(), catId: catSeleccionada, nombre: nombre });
+                datos.productos.push({ id: 'p_' + Date.now(), catId: catSeleccionada, nombre: nombre.trim() });
                 guardarBD();
                 renderProductos();
             }
