@@ -18,9 +18,31 @@
         .pin-input { width: 100%; padding: 12px; font-size: 1.5rem; text-align: center; letter-spacing: 8px; border-radius: 6px; border: 1px solid #82b1ff; background-color: #000; color: #fff; margin: 15px 0; }
         .pin-btn { background-color: #3b82f6; color: #fff; border: none; width: 100%; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
-        /* Header / Nav superior */
-        header { background-color: #3b82f6; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
-        .nav-btn { background-color: #82b1ff; color: #000000; border: none; padding: 6px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.85rem; text-transform: uppercase; }
+        /* Header / Nav superior responsivo */
+        header { 
+            background-color: #3b82f6; 
+            padding: 8px 10px; 
+            display: flex; 
+            gap: 6px; 
+            align-items: center; 
+            position: sticky; 
+            top: 0; 
+            z-index: 100; 
+        }
+        .nav-btn { 
+            flex: 1; 
+            background-color: #82b1ff; 
+            color: #000000; 
+            border: none; 
+            padding: 8px 4px; 
+            border-radius: 6px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            font-size: 0.75rem; 
+            text-transform: uppercase; 
+            text-align: center; 
+            white-space: nowrap; 
+        }
 
         /* Contenedor Principal */
         .container { max-width: 650px; margin: 20px auto; padding: 0 15px; }
@@ -79,7 +101,7 @@
         .color-actions { display: flex; justify-content: space-between; align-items: center; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
 
         .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: #28a745; color: white; padding: 10px 20px; border-radius: 20px; font-weight: bold; display: none; z-index: 1000; }
-        .sync-badge { font-size: 0.75rem; background: #28a745; color: white; padding: 2px 8px; border-radius: 10px; margin-left: 5px; }
+        .sync-badge { font-size: 0.7rem; background: #28a745; color: white; padding: 2px 6px; border-radius: 10px; margin-left: 2px; display: inline-block; }
     </style>
 </head>
 <body>
@@ -95,7 +117,7 @@
         </div>
     </div>
 
-    <!-- Navegación -->
+    <!-- Navegación Ajustada para Celular -->
     <header>
         <button class="nav-btn" onclick="irInicio()">INICIO <span id="status-sync" class="sync-badge">☁️</span></button>
         <button class="nav-btn" onclick="verPantalla('pantalla-carrito-hoy')">CARRITO HOY</button>
@@ -233,7 +255,7 @@
         onSnapshot(docRef, (docSnap) => {
             if (docSnap.exists()) {
                 window.datos = docSnap.data();
-                document.getElementById('status-sync').innerText = '☁️ Sincronizado';
+                document.getElementById('status-sync').innerText = '☁️';
                 document.getElementById('status-sync').style.background = '#28a745';
                 
                 // Refrescar vistas activas
@@ -250,7 +272,6 @@
                     }
                 }
             } else {
-                // Si la BD está vacía por primera vez, creamos el documento inicial
                 window.guardarBD();
             }
         });
@@ -258,12 +279,12 @@
         // Función global para guardar en Firebase
         window.guardarBD = async function() {
             try {
-                document.getElementById('status-sync').innerText = '⏳ Guardando...';
+                document.getElementById('status-sync').innerText = '⏳';
                 document.getElementById('status-sync').style.background = '#ffc107';
                 await setDoc(docRef, window.datos);
             } catch (error) {
                 console.error("Error guardando en Firebase: ", error);
-                document.getElementById('status-sync').innerText = '⚠️ Error';
+                document.getElementById('status-sync').innerText = '⚠️';
                 document.getElementById('status-sync').style.background = '#dc3545';
             }
         };
