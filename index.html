@@ -79,6 +79,7 @@
         .color-actions { display: flex; justify-content: space-between; align-items: center; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
 
         .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: #28a745; color: white; padding: 10px 20px; border-radius: 20px; font-weight: bold; display: none; z-index: 1000; }
+        .sync-badge { font-size: 0.75rem; background: #28a745; color: white; padding: 2px 8px; border-radius: 10px; margin-left: 5px; }
     </style>
 </head>
 <body>
@@ -96,7 +97,7 @@
 
     <!-- Navegación -->
     <header>
-        <button class="nav-btn" onclick="irInicio()">INICIO</button>
+        <button class="nav-btn" onclick="irInicio()">INICIO <span id="status-sync" class="sync-badge">☁️</span></button>
         <button class="nav-btn" onclick="verPantalla('pantalla-carrito-hoy')">CARRITO HOY</button>
         <button class="nav-btn" onclick="verPantalla('pantalla-historial')">HISTORIAL</button>
     </header>
@@ -188,6 +189,86 @@
 
     <div class="toast" id="toast">✅ Vendido y descontado de stock</div>
 
+    <!-- SCRIPT FIREBASE Y LÓGICA DE NEGOCIO -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDif7CYhHMB-gfOl5mEaflTOmKyfWjvbmY",
+            authDomain: "paguina-inventario.firebaseapp.com",
+            projectId: "paguina-inventario",
+            storageBucket: "paguina-inventario.firebasestorage.app",
+            messagingSenderId: "249088242563",
+            appId: "1:249088242563:web:d7cd67d47e0ba9f01b7cb6"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const docRef = doc(db, "inventario", "datos_globales");
+
+        // Datos en memoria
+        window.datos = {
+            categorias: [
+                { id: 'cat_bolsas', nombre: 'Bolsas' },
+                { id: 'cat_jabones', nombre: 'Jabones' }
+            ],
+            productos: [
+                { 
+                    id: 'p1', 
+                    catId: 'cat_bolsas', 
+                    nombre: 'Basura',
+                    precioBase: 1200,
+                    variantes: [
+                        { color: 'Blanca', stock: 100, precio: 1200 },
+                        { color: 'bolsa', stock: 50, precio: 1200 }
+                    ]
+                }
+            ],
+            carritoHoy: {},
+            historialFechas: []
+        };
+
+        // Escuchar cambios en tiempo real desde la nube Firebase
+        onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                window.datos = docSnap.data();
+                document.getElementById('status-sync').innerText = '☁️ Sincronizado';
+                document.getElementById('status-sync').style.background = '#28a745';
+                
+                // Refrescar vistas activas
+                const vistaActiva = document.querySelector('.view.active').id;
+                if (vistaActiva === 'pantalla-categorias') renderCategorias();
+                if (vistaActiva === 'pantalla-productos') renderProductos();
+                if (vistaActiva === 'pantalla-carrito-hoy') renderCarritoHoy();
+                if (vistaActiva === 'pantalla-historial') renderHistorial();
+                if (window.productoActualModal) {
+                    const prodActualizado = window.datos.productos.find(p => p.id === window.productoActualModal.id);
+                    if (prodActualizado) {
+                        window.productoActualModal = prodActualizado;
+                        renderVariantesModal();
+                    }
+                }
+            } else {
+                // Si la BD está vacía por primera vez, creamos el documento inicial
+                window.guardarBD();
+            }
+        });
+
+        // Función global para guardar en Firebase
+        window.guardarBD = async function() {
+            try {
+                document.getElementById('status-sync').innerText = '⏳ Guardando...';
+                document.getElementById('status-sync').style.background = '#ffc107';
+                await setDoc(docRef, window.datos);
+            } catch (error) {
+                console.error("Error guardando en Firebase: ", error);
+                document.getElementById('status-sync').innerText = '⚠️ Error';
+                document.getElementById('status-sync').style.background = '#dc3545';
+            }
+        };
+    </script>
+
     <script>
         const PIN_SECRETO = '1027';
 
@@ -222,35 +303,9 @@
         const strFecha = `${hoy.getDate().toString().padStart(2, '0')}/${(hoy.getMonth() + 1).toString().padStart(2, '0')}/${hoy.getFullYear()}`;
         document.getElementById('fecha-actual').innerText = `FECHA - ${strFecha}`;
 
-        // Base de Datos
-        let datos = JSON.parse(localStorage.getItem('app_ventas_v5')) || {
-            categorias: [
-                { id: 'cat_bolsas', nombre: 'Bolsas' },
-                { id: 'cat_jabones', nombre: 'Jabones' }
-            ],
-            productos: [
-                { 
-                    id: 'p1', 
-                    catId: 'cat_bolsas', 
-                    nombre: 'Basura',
-                    precioBase: 1200,
-                    variantes: [
-                        { color: 'Blanca', stock: 100, precio: 1200 },
-                        { color: 'bolsa', stock: 50, precio: 1200 }
-                    ]
-                }
-            ],
-            carritoHoy: {},
-            historialFechas: []
-        };
-
         let catSeleccionada = null;
         let productoActualModal = null;
         let historialIndexActual = null;
-
-        function guardarBD() {
-            localStorage.setItem('app_ventas_v5', JSON.stringify(datos));
-        }
 
         function verPantalla(pantallaId) {
             desactivarTodosModos();
@@ -324,16 +379,16 @@
             const cont = document.getElementById('contenedor-categorias');
             cont.innerHTML = '';
 
-            datos.categorias.forEach(cat => {
+            window.datos.categorias.forEach(cat => {
                 const card = document.createElement('div');
                 card.className = 'card-product';
                 card.innerHTML = `<div class="card-icon">📁</div><div>${cat.nombre}</div>`;
                 card.onclick = () => {
                     if (modos.Cat.eliminar) {
                         if (confirm(`¿Eliminar categoría "${cat.nombre}" y sus productos?`)) {
-                            datos.categorias = datos.categorias.filter(c => c.id !== cat.id);
-                            datos.productos = datos.productos.filter(p => p.catId !== cat.id);
-                            guardarBD();
+                            window.datos.categorias = window.datos.categorias.filter(c => c.id !== cat.id);
+                            window.datos.productos = window.datos.productos.filter(p => p.catId !== cat.id);
+                            window.guardarBD();
                             desactivarTodosModos();
                             renderCategorias();
                         }
@@ -341,7 +396,7 @@
                         const n = prompt('Nuevo nombre:', cat.nombre);
                         if (n && n.trim() !== '') {
                             cat.nombre = n.trim();
-                            guardarBD();
+                            window.guardarBD();
                             desactivarTodosModos();
                             renderCategorias();
                         }
@@ -358,8 +413,8 @@
         function agregarNuevaCategoria() {
             const nombre = prompt('Nombre de la nueva categoría:');
             if (nombre && nombre.trim() !== '') {
-                datos.categorias.push({ id: 'cat_' + Date.now(), nombre: nombre.trim() });
-                guardarBD();
+                window.datos.categorias.push({ id: 'cat_' + Date.now(), nombre: nombre.trim() });
+                window.guardarBD();
                 renderCategorias();
             }
         }
@@ -369,7 +424,7 @@
             const cont = document.getElementById('contenedor-productos');
             cont.innerHTML = '';
 
-            let prods = datos.productos.filter(p => p.catId === catSeleccionada);
+            let prods = window.datos.productos.filter(p => p.catId === catSeleccionada);
 
             prods.forEach(p => {
                 const card = document.createElement('div');
@@ -383,8 +438,8 @@
                 card.onclick = () => {
                     if (modos.Prod.eliminar) {
                         if (confirm(`¿Eliminar producto "${p.nombre}"?`)) {
-                            datos.productos = datos.productos.filter(item => item.id !== p.id);
-                            guardarBD();
+                            window.datos.productos = window.datos.productos.filter(item => item.id !== p.id);
+                            window.guardarBD();
                             desactivarTodosModos();
                             renderProductos();
                         }
@@ -392,7 +447,7 @@
                         const n = prompt('Nuevo nombre del producto:', p.nombre);
                         if (n && n.trim() !== '') {
                             p.nombre = n.trim();
-                            guardarBD();
+                            window.guardarBD();
                             desactivarTodosModos();
                             renderProductos();
                         }
@@ -408,7 +463,7 @@
 
         function moverProductoOpcion(producto) {
             let opciones = 'Selecciona el número de la categoría destino:\n\n';
-            const categoriasDisponibles = datos.categorias.filter(c => c.id !== catSeleccionada);
+            const categoriasDisponibles = window.datos.categorias.filter(c => c.id !== catSeleccionada);
 
             if (categoriasDisponibles.length === 0) {
                 alert('No hay otras categorías disponibles a las cuales mover.');
@@ -424,7 +479,7 @@
 
             if (!isNaN(num) && num >= 1 && num <= categoriasDisponibles.length) {
                 producto.catId = categoriasDisponibles[num - 1].id;
-                guardarBD();
+                window.guardarBD();
                 alert(`Producto movido a "${categoriasDisponibles[num - 1].nombre}"`);
                 desactivarTodosModos();
                 renderProductos();
@@ -435,7 +490,7 @@
             const nombre = prompt('Nombre del nuevo producto:');
             if (nombre && nombre.trim() !== '' && catSeleccionada) {
                 const precio = parseInt(prompt('Precio base del producto:', '1200'), 10) || 0;
-                datos.productos.push({
+                window.datos.productos.push({
                     id: 'p_' + Date.now(),
                     catId: catSeleccionada,
                     nombre: nombre.trim(),
@@ -444,7 +499,7 @@
                         { color: 'Estándar', stock: 0, precio: precio }
                     ]
                 });
-                guardarBD();
+                window.guardarBD();
                 renderProductos();
             }
         }
@@ -452,6 +507,7 @@
         // --- 3. MODAL VARIANTES ---
         function abrirModalColores(producto) {
             productoActualModal = producto;
+            window.productoActualModal = producto;
             document.getElementById('modal-prod-nombre').innerText = producto.nombre;
             renderVariantesModal();
             document.getElementById('modal-colores').style.display = 'flex';
@@ -500,13 +556,13 @@
                 variante.stock -= 1;
                 const nombreCompleto = `${productoActualModal.nombre} (${colorNombre})`;
 
-                if (datos.carritoHoy[nombreCompleto]) {
-                    datos.carritoHoy[nombreCompleto].cantidad += 1;
+                if (window.datos.carritoHoy[nombreCompleto]) {
+                    window.datos.carritoHoy[nombreCompleto].cantidad += 1;
                 } else {
-                    datos.carritoHoy[nombreCompleto] = { cantidad: 1, precio: precio };
+                    window.datos.carritoHoy[nombreCompleto] = { cantidad: 1, precio: precio };
                 }
 
-                guardarBD();
+                window.guardarBD();
                 renderVariantesModal();
                 renderProductos();
 
@@ -523,7 +579,7 @@
                 const val = parseInt(nuevoStock, 10);
                 if (!isNaN(val)) {
                     v.stock = val;
-                    guardarBD();
+                    window.guardarBD();
                     renderVariantesModal();
                     renderProductos();
                 }
@@ -537,7 +593,7 @@
                 const val = parseInt(p, 10);
                 if (!isNaN(val)) {
                     v.precio = val;
-                    guardarBD();
+                    window.guardarBD();
                     renderVariantesModal();
                     renderProductos();
                 }
@@ -549,7 +605,7 @@
             const n = prompt(`Nuevo nombre para el color / variante:`, v.color);
             if (n && n.trim() !== '') {
                 v.color = n.trim();
-                guardarBD();
+                window.guardarBD();
                 renderVariantesModal();
             }
         }
@@ -557,7 +613,7 @@
         function eliminarVariante(index) {
             if (confirm(`¿Eliminar este color/variante?`)) {
                 productoActualModal.variantes.splice(index, 1);
-                guardarBD();
+                window.guardarBD();
                 renderVariantesModal();
                 renderProductos();
             }
@@ -575,7 +631,7 @@
                     precio: precio
                 });
 
-                guardarBD();
+                window.guardarBD();
                 renderVariantesModal();
                 renderProductos();
             }
@@ -584,6 +640,7 @@
         function cerrarModalColores() {
             document.getElementById('modal-colores').style.display = 'none';
             productoActualModal = null;
+            window.productoActualModal = null;
         }
 
         // --- 4. CARRITO HOY Y HISTORIAL ---
@@ -591,7 +648,7 @@
             const cont = document.getElementById('contenedor-carrito-hoy');
             cont.innerHTML = '';
 
-            let nombres = Object.keys(datos.carritoHoy);
+            let nombres = Object.keys(window.datos.carritoHoy || {});
             nombres.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
 
             if (nombres.length === 0) {
@@ -600,7 +657,7 @@
             }
 
             nombres.forEach(nombre => {
-                const item = datos.carritoHoy[nombre];
+                const item = window.datos.carritoHoy[nombre];
                 const qty = typeof item === 'object' ? item.cantidad : item;
                 const pr = typeof item === 'object' ? item.precio : 0;
                 const precioTxt = pr ? ` - $${(pr * qty).toLocaleString('es-CO')}` : '';
@@ -620,15 +677,15 @@
         }
 
         function modificarCantidadCarrito(nombre, delta) {
-            if (datos.carritoHoy[nombre]) {
-                if (typeof datos.carritoHoy[nombre] === 'number') {
-                    datos.carritoHoy[nombre] = { cantidad: datos.carritoHoy[nombre], precio: 0 };
+            if (window.datos.carritoHoy[nombre]) {
+                if (typeof window.datos.carritoHoy[nombre] === 'number') {
+                    window.datos.carritoHoy[nombre] = { cantidad: window.datos.carritoHoy[nombre], precio: 0 };
                 }
-                datos.carritoHoy[nombre].cantidad += delta;
-                if (datos.carritoHoy[nombre].cantidad <= 0) {
-                    delete datos.carritoHoy[nombre];
+                window.datos.carritoHoy[nombre].cantidad += delta;
+                if (window.datos.carritoHoy[nombre].cantidad <= 0) {
+                    delete window.datos.carritoHoy[nombre];
                 }
-                guardarBD();
+                window.guardarBD();
                 renderCarritoHoy();
             }
         }
@@ -637,12 +694,12 @@
             const cont = document.getElementById('contenedor-historial-fechas');
             cont.innerHTML = '';
 
-            if (datos.historialFechas.length === 0) {
+            if (!window.datos.historialFechas || window.datos.historialFechas.length === 0) {
                 cont.innerHTML = '<div style="text-align:center; color:#888; margin-top:20px;">No hay historial guardado.</div>';
                 return;
             }
 
-            datos.historialFechas.forEach((item, index) => {
+            window.datos.historialFechas.forEach((item, index) => {
                 const row = document.createElement('div');
                 row.className = 'list-row';
                 row.style.cursor = 'pointer';
@@ -661,10 +718,10 @@
 
         function manejarClickHistorial(index) {
             if (modos.Hist.eliminar) {
-                const fechaStr = datos.historialFechas[index].fecha;
+                const fechaStr = window.datos.historialFechas[index].fecha;
                 if (confirm(`¿Eliminar registro completo del día ${fechaStr}?`)) {
-                    datos.historialFechas.splice(index, 1);
-                    guardarBD();
+                    window.datos.historialFechas.splice(index, 1);
+                    window.guardarBD();
                     desactivarTodosModos();
                     renderHistorial();
                 }
@@ -675,7 +732,7 @@
 
         function verDetalleHistorial(index) {
             historialIndexActual = index;
-            const item = datos.historialFechas[index];
+            const item = window.datos.historialFechas[index];
             document.getElementById('modal-titulo-fecha').innerText = `VENTAS: ${item.fecha}`;
             renderListaModalHistorial();
             document.getElementById('modal-historial').style.display = 'flex';
@@ -685,8 +742,8 @@
             const contModal = document.getElementById('modal-lista-productos');
             contModal.innerHTML = '';
 
-            const item = datos.historialFechas[historialIndexActual];
-            let nombres = Object.keys(item.productos);
+            const item = window.datos.historialFechas[historialIndexActual];
+            let nombres = Object.keys(item.productos || {});
             let totalDia = 0;
 
             if (nombres.length === 0) {
@@ -726,8 +783,10 @@
                 const cantidad = parseInt(prompt(`Cantidad:`, '1'), 10);
                 if (!isNaN(cantidad) && cantidad > 0) {
                     const precio = parseInt(prompt(`Precio unitario ($):`, '1200'), 10) || 0;
-                    const item = datos.historialFechas[historialIndexActual];
+                    const item = window.datos.historialFechas[historialIndexActual];
                     const n = nombre.trim();
+
+                    if (!item.productos) item.productos = {};
 
                     if (item.productos[n]) {
                         if (typeof item.productos[n] === 'object') {
@@ -740,14 +799,14 @@
                         item.productos[n] = { cantidad: cantidad, precio: precio };
                     }
 
-                    guardarBD();
+                    window.guardarBD();
                     renderListaModalHistorial();
                 }
             }
         }
 
         function modificarCantidadHistorial(nombreProd, delta) {
-            const item = datos.historialFechas[historialIndexActual];
+            const item = window.datos.historialFechas[historialIndexActual];
             if (item.productos[nombreProd]) {
                 if (typeof item.productos[nombreProd] === 'object') {
                     item.productos[nombreProd].cantidad += delta;
@@ -756,15 +815,15 @@
                     item.productos[nombreProd] += delta;
                     if (item.productos[nombreProd] <= 0) delete item.productos[nombreProd];
                 }
-                guardarBD();
+                window.guardarBD();
                 renderListaModalHistorial();
             }
         }
 
         function eliminarProductoHistorial(nombreProd) {
-            const item = datos.historialFechas[historialIndexActual];
+            const item = window.datos.historialFechas[historialIndexActual];
             delete item.productos[nombreProd];
-            guardarBD();
+            window.guardarBD();
             renderListaModalHistorial();
         }
 
@@ -774,7 +833,7 @@
         }
 
         function guardarDiaEnHistorial() {
-            if (Object.keys(datos.carritoHoy).length === 0) {
+            if (!window.datos.carritoHoy || Object.keys(window.datos.carritoHoy).length === 0) {
                 alert('El carrito está vacío.');
                 return;
             }
@@ -783,14 +842,16 @@
                 const ahora = new Date();
                 const horaStr = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 
-                datos.historialFechas.unshift({
+                if (!window.datos.historialFechas) window.datos.historialFechas = [];
+
+                window.datos.historialFechas.unshift({
                     fecha: strFecha,
                     hora: horaStr,
-                    productos: JSON.parse(JSON.stringify(datos.carritoHoy))
+                    productos: JSON.parse(JSON.stringify(window.datos.carritoHoy))
                 });
 
-                datos.carritoHoy = {};
-                guardarBD();
+                window.datos.carritoHoy = {};
+                window.guardarBD();
                 alert('¡Guardado con éxito!');
                 verPantalla('pantalla-historial');
             }
@@ -802,8 +863,6 @@
                 card.style.display = card.innerText.toLowerCase().includes(txt) ? 'flex' : 'none';
             });
         }
-
-        renderCategorias();
     </script>
 </body>
 </html>
