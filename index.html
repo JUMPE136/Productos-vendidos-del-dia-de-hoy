@@ -3,455 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Ventas - Negocio</title>
+    <title>Control de Ventas e Inventario</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Arial, sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; }
+        body { background-color: #000000; color: #ffffff; padding-bottom: 40px; }
 
-        body {
-            background-color: #000000;
-            color: #ffffff;
-            padding-bottom: 40px;
-        }
-
-        /* Pantalla de Bloqueo / PIN */
+        /* Pantalla PIN */
         #pantalla-pin {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #000000;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #000000; z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px;
         }
+        .pin-box { background-color: #1a1a1a; border: 2px solid #3b82f6; padding: 30px; border-radius: 12px; text-align: center; max-width: 350px; width: 100%; }
+        .pin-input { width: 100%; padding: 12px; font-size: 1.5rem; text-align: center; letter-spacing: 8px; border-radius: 6px; border: 1px solid #82b1ff; background-color: #000; color: #fff; margin: 15px 0; }
+        .pin-btn { background-color: #3b82f6; color: #fff; border: none; width: 100%; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
-        .pin-box {
-            background-color: #1a1a1a;
-            border: 2px solid #1a73e8;
-            padding: 30px;
-            border-radius: 12px;
-            text-align: center;
-            max-width: 350px;
-            width: 100%;
-        }
+        /* Header / Nav superior */
+        header { background-color: #3b82f6; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .nav-btn { background-color: #82b1ff; color: #000000; border: none; padding: 6px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.85rem; text-transform: uppercase; }
 
-        .pin-input {
-            width: 100%;
-            padding: 12px;
-            font-size: 1.5rem;
-            text-align: center;
-            letter-spacing: 8px;
-            border-radius: 6px;
-            border: 1px solid #8ab4f8;
-            background-color: #000;
-            color: #fff;
-            margin: 15px 0;
-        }
+        /* Contenedor Principal */
+        .container { max-width: 650px; margin: 20px auto; padding: 0 15px; }
 
-        .pin-btn {
-            background-color: #1a73e8;
-            color: #fff;
-            border: none;
-            width: 100%;
-            padding: 12px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 1rem;
-            cursor: pointer;
-        }
+        /* Ruta de Navegación / Breadcrumb */
+        .breadcrumb-bar { background-color: #1c1c1c; padding: 10px 15px; border-radius: 8px; margin-bottom: 12px; font-size: 0.9rem; color: #ffffff; font-weight: bold; }
+        .breadcrumb-highlight { color: #82b1ff; cursor: pointer; }
 
-        /* Barra Superior Azul */
-        header {
-            background-color: #1a73e8;
-            padding: 12px 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
+        /* Buscador */
+        .search-box { position: relative; margin-bottom: 12px; }
+        .search-input { width: 100%; padding: 10px 12px 10px 35px; border-radius: 8px; border: none; background-color: #ffffff; color: #000000; font-size: 0.95rem; }
+        .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #666; font-size: 0.9rem; }
 
-        .nav-btn {
-            background-color: #8ab4f8;
-            color: #000000;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-        }
+        /* Botones de Acción */
+        .actions-group { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+        .action-btn { flex: 1; min-width: 100px; border: none; padding: 8px 4px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; cursor: pointer; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 4px; }
+        
+        .btn-add { background-color: #82b1ff; color: #000000; }
+        .btn-edit { background-color: #ffc107; color: #000000; }
+        .btn-move { background-color: #17a2b8; color: #ffffff; }
+        .btn-delete { background-color: #dc3545; color: #ffffff; }
+        .action-btn.active-mode { background-color: #fd7e14; color: #ffffff; }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px 15px;
-        }
+        /* Vistas y Grillas */
+        .view { display: none; }
+        .view.active { display: block; }
+        .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
 
-        /* Buscador Blanco */
-        .search-input {
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            border: none;
-            background-color: #ffffff;
-            color: #000000;
-            font-size: 1rem;
-            margin-bottom: 15px;
-        }
+        .card-product { background-color: #82b1ff; color: #000000; border-radius: 12px; padding: 25px 15px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem; }
+        .card-icon { font-size: 1.8rem; margin-bottom: 8px; }
 
-        /* Contenedor de Botones de Acción */
-        .actions-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
+        .modo-eliminar .card-product { border: 2px dashed #dc3545; background-color: #f8d7da; color: #842029; }
+        .modo-editar .card-product { border: 2px dashed #ffc107; background-color: #fff3cd; color: #664d03; }
+        .modo-mover .card-product { border: 2px dashed #17a2b8; background-color: #d1ecf1; color: #0c5460; }
 
-        .action-banner {
-            flex: 1;
-            min-width: 120px;
-            background-color: #8ab4f8;
-            color: #000000;
-            padding: 12px;
-            border-radius: 8px;
-            text-align: center;
-            font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-        }
-
-        .action-edit {
-            background-color: #ffc107;
-            color: #000000;
-        }
-
-        .action-move {
-            background-color: #17a2b8;
-            color: #ffffff;
-        }
-
-        .action-delete {
-            background-color: #dc3545;
-            color: #ffffff;
-        }
-
-        .action-banner.active-mode {
-            background-color: #fd7e14;
-            color: #ffffff;
-            animation: pulse 1s infinite alternate;
-        }
-
-        @keyframes pulse {
-            from { opacity: 0.8; }
-            to { opacity: 1; }
-        }
-
-        /* Vistas / Secciones */
-        .view {
-            display: none;
-        }
-
-        .view.active {
-            display: block;
-        }
-
-        /* Categorías y Productos */
-        .grid-categories, .grid-products {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-        }
-
-        @media (min-width: 600px) {
-            .grid-categories, .grid-products {
-                grid-template-columns: repeat(4, 1fr);
-            }
-        }
-
-        .card-blue {
-            background-color: #8ab4f8;
-            color: #000000;
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            min-height: 110px;
-            position: relative;
-            transition: transform 0.1s;
-        }
-
-        .modo-eliminar .card-blue, 
-        .modo-eliminar .list-row-historial {
-            border: 2px dashed #dc3545;
-            background-color: #f8d7da;
-            color: #842029;
-        }
-
-        .modo-editar .card-blue {
-            border: 2px dashed #ffc107;
-            background-color: #fff3cd;
-            color: #664d03;
-        }
-
-        .modo-mover .card-blue {
-            border: 2px dashed #17a2b8;
-            background-color: #d1ecf1;
-            color: #0c5460;
-        }
-
-        .title-sec {
-            text-align: center;
-            font-size: 1.1rem;
-            margin-bottom: 5px;
-            color: #ffffff;
-            font-weight: bold;
-        }
-
-        .date-sec {
-            text-align: center;
-            font-size: 0.9rem;
-            color: #8ab4f8;
-            margin-bottom: 20px;
-        }
-
-        .list-row {
-            background-color: #8ab4f8;
-            color: #000000;
-            border-radius: 10px;
-            padding: 12px 15px;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-        }
-
-        .prod-name {
-            font-size: 0.95rem;
-            flex: 1;
-        }
-
-        .controls {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-circle {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: none;
-            color: #ffffff;
-            font-weight: bold;
-            font-size: 1.1rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .btn-icon {
-            background-color: #000000;
-            color: #ffffff;
-            border: none;
-            padding: 6px 8px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-
+        /* Estilos Carrito e Historial */
+        .title-sec { text-align: center; font-size: 1.1rem; margin-bottom: 5px; color: #fff; font-weight: bold; }
+        .date-sec { text-align: center; font-size: 0.9rem; color: #82b1ff; margin-bottom: 20px; }
+        .list-row { background-color: #82b1ff; color: #000; border-radius: 10px; padding: 12px 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .prod-name { font-size: 0.95rem; flex: 1; }
+        .controls { display: flex; align-items: center; gap: 8px; }
+        .btn-circle { width: 32px; height: 32px; border-radius: 50%; border: none; color: #fff; font-weight: bold; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn-icon { background-color: #000; color: #fff; border: none; padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
         .btn-minus { background-color: #dc3545; }
         .btn-plus { background-color: #28a745; }
+        .btn-save-day { background-color: #28a745; color: #fff; width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; margin-top: 15px; cursor: pointer; }
 
-        .btn-view-prods {
-            background-color: #1a73e8;
-            color: #ffffff;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-        }
+        /* Modales */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); z-index: 200; justify-content: center; align-items: center; padding: 15px; }
+        .modal-content { background-color: #1a1a1a; border: 2px solid #82b1ff; border-radius: 12px; padding: 20px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; text-align: center; }
 
-        .btn-save-day {
-            background-color: #28a745;
-            color: #ffffff;
-            width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 1rem;
-            margin-top: 15px;
-            cursor: pointer;
-        }
+        .color-row { background-color: #2a2a2a; border-radius: 8px; padding: 12px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #444; }
+        .color-info { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 0.95rem; }
+        .color-actions { display: flex; justify-content: space-between; align-items: center; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
 
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #28a745;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-weight: bold;
-            display: none;
-            z-index: 1000;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.85);
-            z-index: 200;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .modal-content {
-            background-color: #000000;
-            border: 2px solid #8ab4f8;
-            border-radius: 12px;
-            padding: 20px;
-            width: 100%;
-            max-width: 550px;
-            max-height: 85vh;
-            overflow-y: auto;
-        }
-
-        .badge-pos {
-            position: absolute;
-            top: 5px;
-            left: 5px;
-            background: rgba(0,0,0,0.6);
-            color: #fff;
-            font-size: 0.75rem;
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: #28a745; color: white; padding: 10px 20px; border-radius: 20px; font-weight: bold; display: none; z-index: 1000; }
     </style>
 </head>
 <body>
 
-    <!-- PANTALLA DE BLOQUEO POR PIN -->
+    <!-- PIN -->
     <div id="pantalla-pin">
         <div class="pin-box">
             <h3>🔒 ACCESO AL NEGOCIO</h3>
-            <p style="font-size: 0.85rem; color: #8ab4f8; margin-top: 5px;">Ingresa el PIN de 4 dígitos</p>
+            <p style="font-size: 0.85rem; color: #82b1ff; margin-top: 5px;">Ingresa el PIN de 4 dígitos</p>
             <input type="password" id="input-pin" class="pin-input" maxlength="4" placeholder="••••">
             <button class="pin-btn" onclick="verificarPin()">INGRESAR</button>
             <div id="error-pin" style="color: #dc3545; font-size: 0.85rem; margin-top: 10px; display: none;">PIN incorrecto</div>
         </div>
     </div>
 
-    <!-- Encabezado con NAVEGACIÓN -->
+    <!-- Navegación -->
     <header>
-        <button class="nav-btn" onclick="verPantalla('pantalla-categorias')">INICIO</button>
+        <button class="nav-btn" onclick="irInicio()">INICIO</button>
         <button class="nav-btn" onclick="verPantalla('pantalla-carrito-hoy')">CARRITO HOY</button>
         <button class="nav-btn" onclick="verPantalla('pantalla-historial')">HISTORIAL</button>
     </header>
 
     <div class="container">
 
-        <!-- 1. SECCIÓN CATEGORÍAS -->
+        <div id="breadcrumb" class="breadcrumb-bar" style="display: none;">
+            📁 <span class="breadcrumb-highlight" onclick="irInicio()">Inicio</span>
+            <span id="bc-cat-wrapper" style="display:none;"> > <span id="bc-cat-name"></span></span>
+        </div>
+
+        <!-- 1. CATEGORÍAS PRINCIPALES -->
         <div id="pantalla-categorias" class="view active">
-            <input type="text" class="search-input" id="search-cat" placeholder="🔎 Buscador..." oninput="filtrarCategorias()">
+            <div class="search-box">
+                <span class="search-icon">🔎</span>
+                <input type="text" class="search-input" id="search-cat" placeholder="Buscar Categoría..." oninput="filtrarCards('contenedor-categorias', this.value)">
+            </div>
             
             <div class="actions-group">
-                <div class="action-banner" onclick="agregarNuevaCategoria()">+ AGREGAR CATEGORÍA</div>
-                <div class="action-banner action-edit" id="btn-edit-cat" onclick="toggleModoEditarCat()">✏️ EDITAR NOMBRE</div>
-                <div class="action-banner action-delete" id="btn-del-cat" onclick="toggleModoEliminarCat()">🗑️ ELIMINAR CATEGORÍA</div>
+                <button class="action-btn btn-add" onclick="agregarNuevaCategoria()">+ AGREGAR CATEGORÍA</button>
+                <button class="action-btn btn-edit" id="btn-edit-cat" onclick="toggleModo('Cat', 'editar')">✏️ EDITAR</button>
+                <button class="action-btn btn-delete" id="btn-del-cat" onclick="toggleModo('Cat', 'eliminar')">🗑️ ELIMINAR</button>
             </div>
 
-            <div class="grid-categories" id="contenedor-categorias"></div>
+            <div class="grid-cards" id="contenedor-categorias"></div>
         </div>
 
-        <!-- 2. SECCIÓN PRODUCTOS -->
+        <!-- 2. PRODUCTOS/SUBCATEGORÍAS -->
         <div id="pantalla-productos" class="view">
-            <input type="text" class="search-input" id="search-prod" placeholder="🔎 Buscador..." oninput="filtrarProductos()">
+            <div class="search-box">
+                <span class="search-icon">🔑</span>
+                <input type="text" class="search-input" id="search-prod" placeholder="Buscar Producto..." oninput="filtrarCards('contenedor-productos', this.value)">
+            </div>
             
             <div class="actions-group">
-                <div class="action-banner" onclick="agregarNuevoProducto()">+ AGREGAR PRODUCTO</div>
-                <div class="action-banner action-edit" id="btn-edit-prod" onclick="toggleModoEditarProd()">✏️ EDITAR NOMBRE</div>
-                <div class="action-banner action-move" id="btn-move-prod" onclick="toggleModoMoverProd()">↔️ MOVER DE LUGAR</div>
-                <div class="action-banner action-delete" id="btn-del-prod" onclick="toggleModoEliminarProd()">🗑️ ELIMINAR PRODUCTO</div>
+                <button class="action-btn btn-add" onclick="agregarNuevoProducto()">+ AGREGAR PRODUCTO</button>
+                <button class="action-btn btn-edit" id="btn-edit-prod" onclick="toggleModo('Prod', 'editar')">✏️ EDITAR</button>
+                <button class="action-btn btn-move" id="btn-mov-prod" onclick="toggleModo('Prod', 'mover')">↔️ MOVER PRODUCTO</button>
+                <button class="action-btn btn-delete" id="btn-del-prod" onclick="toggleModo('Prod', 'eliminar')">🗑️ ELIMINAR</button>
             </div>
 
-            <div class="grid-products" id="contenedor-productos"></div>
+            <div class="grid-cards" id="contenedor-productos"></div>
         </div>
 
-        <!-- 3. SECCIÓN CARRITO DEL DÍA -->
+        <!-- 3. CARRITO HOY -->
         <div id="pantalla-carrito-hoy" class="view">
-            <div class="title-sec">LISTADO DE PRODUCTOS DEL DÍA DE HOY</div>
+            <div class="title-sec">LISTADO DE PRODUCTOS VENDIDOS HOY</div>
             <div class="date-sec" id="fecha-actual">FECHA - --/--/----</div>
-
             <div id="contenedor-carrito-hoy"></div>
-
             <button class="btn-save-day" onclick="guardarDiaEnHistorial()">💾 GUARDAR DÍA EN HISTORIAL</button>
         </div>
 
-        <!-- 4. SECCIÓN HISTORIAL -->
+        <!-- 4. HISTORIAL -->
         <div id="pantalla-historial" class="view">
-            <div class="title-sec">HISTORIAL DE VENTAS POR FECHA Y HORA</div>
-            
+            <div class="title-sec">HISTORIAL DE VENTAS POR FECHA</div>
             <div class="actions-group" style="margin-top: 15px;">
-                <div class="action-banner action-delete" id="btn-del-hist" onclick="toggleModoEliminarHist()" style="width: 100%;">🗑️ ELIMINAR REGISTRO COMPLETO DE DÍA</div>
+                <button class="action-btn btn-delete" id="btn-del-hist" onclick="toggleModo('Hist', 'eliminar')" style="width: 100%;">🗑️ ELIMINAR REGISTRO DÍA COMPLETO</button>
             </div>
-
             <div id="contenedor-historial-fechas"></div>
         </div>
 
     </div>
 
-    <!-- Modal Detalle Historial -->
+    <!-- PANTALLITA FLOTANTE (MODAL) PARA SELECCIONAR / EDITAR COLORES -->
+    <div class="modal" id="modal-colores">
+        <div class="modal-content">
+            <h3 id="modal-prod-nombre" style="color: #82b1ff; font-size: 1.3rem;">Basura</h3>
+            <p style="font-size: 0.9rem; margin: 8px 0 15px 0; color: #ccc; font-weight: bold;">Color:</p>
+            
+            <div id="lista-colores-modal"></div>
+
+            <button class="action-btn btn-add" style="background:#28a745; color:#fff; width:100%; margin-top:10px; padding:10px;" onclick="agregarNuevoColorVariante()">+ AGREGAR COLOR/VARIANTE</button>
+            <button class="btn-save-day" style="background-color: #dc3545; padding: 10px; margin-top:10px;" onclick="cerrarModalColores()">CERRAR</button>
+        </div>
+    </div>
+
+    <!-- Modal Historial Detalle -->
     <div class="modal" id="modal-historial">
         <div class="modal-content">
             <div class="title-sec" id="modal-titulo-fecha">FECHA Y HORA</div>
             <div id="modal-lista-productos" style="margin: 20px 0;"></div>
-            
-            <!-- NUEVO BOTÓN PARA AGREGAR PRODUCTOS FALTANTES AL HISTORIAL -->
-            <button class="btn-save-day" style="background-color: #28a745; margin-top: 10px;" onclick="agregarProductoFaltanteHistorial()">+ AGREGAR PRODUCTO FALTANTE</button>
-            <button class="btn-save-day" style="background-color: #dc3545; margin-top: 10px;" onclick="cerrarModal()">CERRAR</button>
+            <button class="btn-save-day" style="background-color: #28a745;" onclick="agregarProductoFaltanteHistorial()">+ AGREGAR FALTANTE</button>
+            <button class="btn-save-day" style="background-color: #dc3545; margin-top: 10px;" onclick="cerrarModalHistorial()">CERRAR</button>
         </div>
     </div>
 
-    <div class="toast" id="toast">✅ Agregado a la lista de hoy</div>
+    <div class="toast" id="toast">✅ Vendido y descontado de stock</div>
 
     <script>
         const PIN_SECRETO = '1027';
 
-        let modoEliminarCat = false;
-        let modoEditarCat = false;
-        let modoEliminarProd = false;
-        let modoEditarProd = false;
-        let modoMoverProd = false;
-        let modoEliminarHist = false;
+        let modos = {
+            Cat: { editar: false, eliminar: false },
+            Prod: { editar: false, eliminar: false, mover: false },
+            Hist: { eliminar: false }
+        };
 
         function comprobarSesionPin() {
-            const sesionGuardada = localStorage.getItem('app_sesion_pin');
-            const fechaHoyStr = new Date().toDateString();
-
-            if (sesionGuardada === fechaHoyStr) {
+            if (localStorage.getItem('app_sesion_pin') === new Date().toDateString()) {
                 document.getElementById('pantalla-pin').style.display = 'none';
             } else {
                 document.getElementById('pantalla-pin').style.display = 'flex';
@@ -459,8 +201,7 @@
         }
 
         function verificarPin() {
-            const ingresado = document.getElementById('input-pin').value;
-            if (ingresado === PIN_SECRETO) {
+            if (document.getElementById('input-pin').value === PIN_SECRETO) {
                 localStorage.setItem('app_sesion_pin', new Date().toDateString());
                 document.getElementById('pantalla-pin').style.display = 'none';
                 document.getElementById('error-pin').style.display = 'none';
@@ -476,298 +217,372 @@
         const strFecha = `${hoy.getDate().toString().padStart(2, '0')}/${(hoy.getMonth() + 1).toString().padStart(2, '0')}/${hoy.getFullYear()}`;
         document.getElementById('fecha-actual').innerText = `FECHA - ${strFecha}`;
 
-        let datos = JSON.parse(localStorage.getItem('app_ventas_test')) || {
+        // Base de Datos
+        let datos = JSON.parse(localStorage.getItem('app_ventas_v5')) || {
             categorias: [
                 { id: 'cat_bolsas', nombre: 'Bolsas' },
-                { id: 'cat_jabones', nombre: 'Jabones' },
-                { id: 'cat_papel', nombre: 'Papel de baño' }
+                { id: 'cat_jabones', nombre: 'Jabones' }
             ],
             productos: [
-                { id: 'p1', catId: 'cat_bolsas', nombre: 'Bolsa de Manija 1.5 kg' },
-                { id: 'p2', catId: 'cat_bolsas', nombre: 'Bolsa de Manija 2 kg' },
-                { id: 'p3', catId: 'cat_bolsas', nombre: 'Bolsa de Basura 2 kg' },
-                { id: 'p4', catId: 'cat_jabones', nombre: 'Jabón Líquido' },
-                { id: 'p5', catId: 'cat_papel', nombre: 'Papel Élite Morado' }
+                { 
+                    id: 'p1', 
+                    catId: 'cat_bolsas', 
+                    nombre: 'Basura',
+                    precioBase: 1200,
+                    variantes: [
+                        { color: 'Blanca', stock: 100, precio: 1200 },
+                        { color: 'bolsa', stock: 50, precio: 1200 }
+                    ]
+                }
             ],
             carritoHoy: {},
             historialFechas: []
         };
 
         let catSeleccionada = null;
+        let productoActualModal = null;
         let historialIndexActual = null;
 
         function guardarBD() {
-            localStorage.setItem('app_ventas_test', JSON.stringify(datos));
+            localStorage.setItem('app_ventas_v5', JSON.stringify(datos));
         }
 
         function verPantalla(pantallaId) {
-            desactivarTodosModosEspeciales();
+            desactivarTodosModos();
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById(pantallaId).classList.add('active');
 
-            if (pantallaId === 'pantalla-categorias') renderCategorias();
+            const bc = document.getElementById('breadcrumb');
+            if (pantallaId === 'pantalla-categorias') {
+                bc.style.display = 'none';
+                renderCategorias();
+            } else if (pantallaId === 'pantalla-productos') {
+                bc.style.display = 'block';
+                document.getElementById('bc-cat-wrapper').style.display = 'inline';
+                renderProductos();
+            } else {
+                bc.style.display = 'none';
+            }
+
             if (pantallaId === 'pantalla-carrito-hoy') renderCarritoHoy();
             if (pantallaId === 'pantalla-historial') renderHistorial();
         }
 
-        function desactivarTodosModosEspeciales() {
-            modoEliminarCat = false;
-            modoEditarCat = false;
-            modoEliminarProd = false;
-            modoEditarProd = false;
-            modoMoverProd = false;
-            modoEliminarHist = false;
-
-            document.getElementById('contenedor-categorias').classList.remove('modo-eliminar', 'modo-editar');
-            document.getElementById('contenedor-productos').classList.remove('modo-eliminar', 'modo-editar', 'modo-mover');
-            document.getElementById('contenedor-historial-fechas').classList.remove('modo-eliminar');
-
-            document.getElementById('btn-edit-cat').classList.remove('active-mode');
-            document.getElementById('btn-edit-cat').innerText = '✏️ EDITAR NOMBRE';
-
-            document.getElementById('btn-del-cat').classList.remove('active-mode');
-            document.getElementById('btn-del-cat').innerText = '🗑️ ELIMINAR CATEGORÍA';
-
-            document.getElementById('btn-edit-prod').classList.remove('active-mode');
-            document.getElementById('btn-edit-prod').innerText = '✏️ EDITAR NOMBRE';
-
-            document.getElementById('btn-move-prod').classList.remove('active-mode');
-            document.getElementById('btn-move-prod').innerText = '↔️ MOVER DE LUGAR';
-
-            document.getElementById('btn-del-prod').classList.remove('active-mode');
-            document.getElementById('btn-del-prod').innerText = '🗑️ ELIMINAR PRODUCTO';
-
-            document.getElementById('btn-del-hist').classList.remove('active-mode');
-            document.getElementById('btn-del-hist').innerText = '🗑️ ELIMINAR REGISTRO COMPLETO DE DÍA';
+        function irInicio() {
+            catSeleccionada = null;
+            verPantalla('pantalla-categorias');
         }
 
-        // --- MANEJO DE CATEGORÍAS ---
-        function toggleModoEditarCat() {
-            if (modoEliminarCat) toggleModoEliminarCat();
-            modoEditarCat = !modoEditarCat;
-            const btn = document.getElementById('btn-edit-cat');
-            const cont = document.getElementById('contenedor-categorias');
-
-            if (modoEditarCat) {
-                btn.classList.add('active-mode');
-                btn.innerText = '❌ CANCELAR EDICIÓN';
-                cont.classList.add('modo-editar');
-            } else {
-                btn.classList.remove('active-mode');
-                btn.innerText = '✏️ EDITAR NOMBRE';
-                cont.classList.remove('modo-editar');
+        function desactivarTodosModos() {
+            for (let sec in modos) {
+                for (let acc in modos[sec]) {
+                    modos[sec][acc] = false;
+                }
             }
+            document.querySelectorAll('.action-btn').forEach(b => b.classList.remove('active-mode'));
+            document.querySelectorAll('.grid-cards, #contenedor-historial-fechas').forEach(g => {
+                g.classList.remove('modo-eliminar', 'modo-editar', 'modo-mover');
+            });
+            document.getElementById('btn-edit-cat').innerText = '✏️ EDITAR';
+            document.getElementById('btn-del-cat').innerText = '🗑️ ELIMINAR';
+            document.getElementById('btn-edit-prod').innerText = '✏️ EDITAR';
+            document.getElementById('btn-mov-prod').innerText = '↔️ MOVER PRODUCTO';
+            document.getElementById('btn-del-prod').innerText = '🗑️ ELIMINAR';
+            document.getElementById('btn-del-hist').innerText = '🗑️ ELIMINAR REGISTRO DÍA COMPLETO';
         }
 
-        function toggleModoEliminarCat() {
-            if (modoEditarCat) toggleModoEditarCat();
-            modoEliminarCat = !modoEliminarCat;
-            const btn = document.getElementById('btn-del-cat');
-            const cont = document.getElementById('contenedor-categorias');
+        function toggleModo(seccion, accion) {
+            const estadoActual = modos[seccion][accion];
+            desactivarTodosModos();
+            modos[seccion][accion] = !estadoActual;
 
-            if (modoEliminarCat) {
-                btn.classList.add('active-mode');
-                btn.innerText = '❌ CANCELAR BORRADO';
-                cont.classList.add('modo-eliminar');
-            } else {
-                btn.classList.remove('active-mode');
-                btn.innerText = '🗑️ ELIMINAR CATEGORÍA';
-                cont.classList.remove('modo-eliminar');
+            if (modos[seccion][accion]) {
+                const btnId = `btn-${accion.substring(0,3)}-${seccion.toLowerCase()}`;
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    btn.classList.add('active-mode');
+                    btn.innerText = '❌ CANCELAR';
+                }
+
+                let contId = `contenedor-${seccion === 'Cat' ? 'categorias' : 'productos'}`;
+                if (seccion === 'Hist') contId = 'contenedor-historial-fechas';
+                document.getElementById(contId).classList.add(`modo-${accion}`);
             }
+
+            if (seccion === 'Cat') renderCategorias();
+            if (seccion === 'Prod') renderProductos();
+            if (seccion === 'Hist') renderHistorial();
         }
 
+        // --- 1. CATEGORÍAS ---
         function renderCategorias() {
             const cont = document.getElementById('contenedor-categorias');
             cont.innerHTML = '';
 
             datos.categorias.forEach(cat => {
                 const card = document.createElement('div');
-                card.className = 'card-blue';
-                card.innerHTML = `<div>🛍️</div><div style="margin-top:8px">${cat.nombre}</div>`;
+                card.className = 'card-product';
+                card.innerHTML = `<div class="card-icon">📁</div><div>${cat.nombre}</div>`;
                 card.onclick = () => {
-                    if (modoEliminarCat) {
-                        eliminarCategoria(cat.id, cat.nombre);
-                    } else if (modoEditarCat) {
-                        editarCategoria(cat.id, cat.nombre);
+                    if (modos.Cat.eliminar) {
+                        if (confirm(`¿Eliminar categoría "${cat.nombre}" y sus productos?`)) {
+                            datos.categorias = datos.categorias.filter(c => c.id !== cat.id);
+                            datos.productos = datos.productos.filter(p => p.catId !== cat.id);
+                            guardarBD();
+                            desactivarTodosModos();
+                            renderCategorias();
+                        }
+                    } else if (modos.Cat.editar) {
+                        const n = prompt('Nuevo nombre:', cat.nombre);
+                        if (n && n.trim() !== '') {
+                            cat.nombre = n.trim();
+                            guardarBD();
+                            desactivarTodosModos();
+                            renderCategorias();
+                        }
                     } else {
-                        abrirCategoria(cat.id);
+                        catSeleccionada = cat.id;
+                        document.getElementById('bc-cat-name').innerText = cat.nombre;
+                        verPantalla('pantalla-productos');
                     }
                 };
                 cont.appendChild(card);
             });
         }
 
-        function editarCategoria(catId, nombreActual) {
-            const nuevoNombre = prompt('Ingresa el nuevo nombre para esta categoría:', nombreActual);
-            if (nuevoNombre && nuevoNombre.trim() !== '') {
-                const cat = datos.categorias.find(c => c.id === catId);
-                if (cat) {
-                    cat.nombre = nuevoNombre.trim();
-                    guardarBD();
-                    toggleModoEditarCat();
-                    renderCategorias();
-                }
-            }
-        }
-
-        function eliminarCategoria(catId, nombre) {
-            if (confirm(`¿Estás seguro de eliminar la categoría "${nombre}" y todos sus productos?`)) {
-                datos.categorias = datos.categorias.filter(c => c.id !== catId);
-                datos.productos = datos.productos.filter(p => p.catId !== catId);
+        function agregarNuevaCategoria() {
+            const nombre = prompt('Nombre de la nueva categoría:');
+            if (nombre && nombre.trim() !== '') {
+                datos.categorias.push({ id: 'cat_' + Date.now(), nombre: nombre.trim() });
                 guardarBD();
-                toggleModoEliminarCat();
                 renderCategorias();
             }
         }
 
-        function abrirCategoria(catId) {
-            catSeleccionada = catId;
-            verPantalla('pantalla-productos');
-            renderProductos();
-        }
-
-        // --- MANEJO DE PRODUCTOS ---
-        function toggleModoEditarProd() {
-            if (modoEliminarProd) toggleModoEliminarProd();
-            if (modoMoverProd) toggleModoMoverProd();
-            modoEditarProd = !modoEditarProd;
-            const btn = document.getElementById('btn-edit-prod');
-            const cont = document.getElementById('contenedor-productos');
-
-            if (modoEditarProd) {
-                btn.classList.add('active-mode');
-                btn.innerText = '❌ CANCELAR EDICIÓN';
-                cont.classList.add('modo-editar');
-            } else {
-                btn.classList.remove('active-mode');
-                btn.innerText = '✏️ EDITAR NOMBRE';
-                cont.classList.remove('modo-editar');
-            }
-        }
-
-        function toggleModoMoverProd() {
-            if (modoEditarProd) toggleModoEditarProd();
-            if (modoEliminarProd) toggleModoEliminarProd();
-            modoMoverProd = !modoMoverProd;
-            const btn = document.getElementById('btn-move-prod');
-            const cont = document.getElementById('contenedor-productos');
-
-            if (modoMoverProd) {
-                btn.classList.add('active-mode');
-                btn.innerText = '❌ CANCELAR MOVER';
-                cont.classList.add('modo-mover');
-            } else {
-                btn.classList.remove('active-mode');
-                btn.innerText = '↔️ MOVER DE LUGAR';
-                cont.classList.remove('modo-mover');
-            }
-            renderProductos();
-        }
-
-        function toggleModoEliminarProd() {
-            if (modoEditarProd) toggleModoEditarProd();
-            if (modoMoverProd) toggleModoMoverProd();
-            modoEliminarProd = !modoEliminarProd;
-            const btn = document.getElementById('btn-del-prod');
-            const cont = document.getElementById('contenedor-productos');
-
-            if (modoEliminarProd) {
-                btn.classList.add('active-mode');
-                btn.innerText = '❌ CANCELAR BORRADO';
-                cont.classList.add('modo-eliminar');
-            } else {
-                btn.classList.remove('active-mode');
-                btn.innerText = '🗑️ ELIMINAR PRODUCTO';
-                cont.classList.remove('modo-eliminar');
-            }
-        }
-
+        // --- 2. PRODUCTOS ---
         function renderProductos() {
             const cont = document.getElementById('contenedor-productos');
             cont.innerHTML = '';
 
             let prods = datos.productos.filter(p => p.catId === catSeleccionada);
 
-            prods.forEach((p, idx) => {
+            prods.forEach(p => {
                 const card = document.createElement('div');
-                card.className = 'card-blue';
+                card.className = 'card-product';
                 
-                const badge = modoMoverProd ? `<span class="badge-pos">Posición ${idx + 1}</span>` : '';
-                
-                card.innerHTML = `${badge}<div>📦</div><div style="font-size:0.85rem; margin-top:5px">${p.nombre}</div>`;
+                card.innerHTML = `
+                    <div class="card-icon">📦</div>
+                    <div>${p.nombre}</div>
+                `;
+
                 card.onclick = () => {
-                    if (modoEliminarProd) {
-                        eliminarProducto(p.id, p.nombre);
-                    } else if (modoEditarProd) {
-                        editarProducto(p.id, p.nombre);
-                    } else if (modoMoverProd) {
-                        moverProductoPosicion(p.id, p.nombre, idx + 1, prods.length);
+                    if (modos.Prod.eliminar) {
+                        if (confirm(`¿Eliminar producto "${p.nombre}"?`)) {
+                            datos.productos = datos.productos.filter(item => item.id !== p.id);
+                            guardarBD();
+                            desactivarTodosModos();
+                            renderProductos();
+                        }
+                    } else if (modos.Prod.editar) {
+                        const n = prompt('Nuevo nombre del producto:', p.nombre);
+                        if (n && n.trim() !== '') {
+                            p.nombre = n.trim();
+                            guardarBD();
+                            desactivarTodosModos();
+                            renderProductos();
+                        }
+                    } else if (modos.Prod.mover) {
+                        moverProductoOpcion(p);
                     } else {
-                        sumarAlCarrito(p.nombre);
+                        abrirModalColores(p);
                     }
                 };
                 cont.appendChild(card);
             });
         }
 
-        function moverProductoPosicion(prodId, nombreActual, posActual, total) {
-            const nuevaPosStr = prompt(`"${nombreActual}" está en la posición ${posActual}.\n¿A qué posición quieres moverlo? (Ingresa de 1 a ${total}):`, posActual);
-            
-            if (nuevaPosStr !== null) {
-                const nuevaPos = parseInt(nuevaPosStr, 10);
-                if (isNaN(nuevaPos) || nuevaPos < 1 || nuevaPos > total) {
-                    alert(`Por favor ingresa un número válido entre 1 y ${total}.`);
-                    return;
-                }
+        function moverProductoOpcion(producto) {
+            let opciones = 'Selecciona el número de la categoría destino:\n\n';
+            const categoriasDisponibles = datos.categorias.filter(c => c.id !== catSeleccionada);
 
-                let prodsCategoria = datos.productos.filter(p => p.catId === catSeleccionada);
-                let prodsOtrasCategorias = datos.productos.filter(p => p.catId !== catSeleccionada);
+            if (categoriasDisponibles.length === 0) {
+                alert('No hay otras categorías disponibles a las cuales mover.');
+                return;
+            }
 
-                const indexActual = prodsCategoria.findIndex(p => p.id === prodId);
-                const [prodMover] = prodsCategoria.splice(indexActual, 1);
-                prodsCategoria.splice(nuevaPos - 1, 0, prodMover);
+            categoriasDisponibles.forEach((c, index) => {
+                opciones += `${index + 1}. ${c.nombre}\n`;
+            });
 
-                datos.productos = [...prodsOtrasCategorias, ...prodsCategoria];
+            const elegida = prompt(opciones);
+            const num = parseInt(elegida, 10);
+
+            if (!isNaN(num) && num >= 1 && num <= categoriasDisponibles.length) {
+                producto.catId = categoriasDisponibles[num - 1].id;
                 guardarBD();
-                toggleModoMoverProd();
+                alert(`Producto movido a "${categoriasDisponibles[num - 1].nombre}"`);
+                desactivarTodosModos();
+                renderProductos();
             }
         }
 
-        function editarProducto(prodId, nombreActual) {
-            const nuevoNombre = prompt('Ingresa el nuevo nombre para este producto:', nombreActual);
-            if (nuevoNombre && nuevoNombre.trim() !== '') {
-                const p = datos.productos.find(item => item.id === prodId);
-                if (p) {
-                    p.nombre = nuevoNombre.trim();
+        function agregarNuevoProducto() {
+            const nombre = prompt('Nombre del nuevo producto:');
+            if (nombre && nombre.trim() !== '' && catSeleccionada) {
+                const precio = parseInt(prompt('Precio base del producto:', '1200'), 10) || 0;
+                datos.productos.push({
+                    id: 'p_' + Date.now(),
+                    catId: catSeleccionada,
+                    nombre: nombre.trim(),
+                    precioBase: precio,
+                    variantes: [
+                        { color: 'Estándar', stock: 0, precio: precio }
+                    ]
+                });
+                guardarBD();
+                renderProductos();
+            }
+        }
+
+        // --- 3. PANTALLA FLOTANTE / MODAL ---
+        function abrirModalColores(producto) {
+            productoActualModal = producto;
+            document.getElementById('modal-prod-nombre').innerText = producto.nombre;
+            renderVariantesModal();
+            document.getElementById('modal-colores').style.display = 'flex';
+        }
+
+        function renderVariantesModal() {
+            const cont = document.getElementById('lista-colores-modal');
+            cont.innerHTML = '';
+
+            if (!productoActualModal.variantes || productoActualModal.variantes.length === 0) {
+                cont.innerHTML = '<div style="color:#aaa;">No hay colores registrados.</div>';
+                return;
+            }
+
+            productoActualModal.variantes.forEach((v, index) => {
+                const box = document.createElement('div');
+                box.className = 'color-row';
+                box.innerHTML = `
+                    <div class="color-info">
+                        <span>${v.color}</span>
+                        <span style="color:#82b1ff;">$${(v.precio || 0).toLocaleString('es-CO')}</span>
+                    </div>
+                    <div class="color-info" style="font-size:0.85rem; color:#aaa;">
+                        <span>Stock disponible: <strong>${v.stock}</strong></span>
+                        <button class="nav-btn" style="background:#28a745; color:#fff;" onclick="venderColor('${v.color}', ${v.precio})">🛒 VENDER</button>
+                    </div>
+                    <div class="color-actions">
+                        <button class="btn-icon" style="background:#28a745;" onclick="modificarStockVariante(${index}, 10)">+10 Stock</button>
+                        <button class="btn-icon" style="background:#dc3545;" onclick="modificarStockVariante(${index}, -10)">-10 Stock</button>
+                        <button class="btn-icon" style="background:#ffc107; color:#000;" onclick="editarPrecioVariante(${index})">✏️ Precio</button>
+                        <button class="btn-icon" style="background:#17a2b8;" onclick="editarNombreVariante(${index})">✏️ Nombre del producto</button>
+                        <button class="btn-icon" style="background:#dc3545;" onclick="eliminarVariante(${index})">🗑️</button>
+                    </div>
+                `;
+                cont.appendChild(box);
+            });
+        }
+
+        function venderColor(colorNombre, precio) {
+            const variante = productoActualModal.variantes.find(v => v.color === colorNombre);
+            if (variante) {
+                if (variante.stock <= 0) {
+                    alert('Este producto ya no hay en stock');
+                    return;
+                }
+                
+                variante.stock -= 1;
+                const nombreCompleto = `${productoActualModal.nombre} (${colorNombre})`;
+
+                if (datos.carritoHoy[nombreCompleto]) {
+                    datos.carritoHoy[nombreCompleto].cantidad += 1;
+                } else {
+                    datos.carritoHoy[nombreCompleto] = { cantidad: 1, precio: precio };
+                }
+
+                guardarBD();
+                renderVariantesModal();
+                renderProductos();
+
+                const toast = document.getElementById('toast');
+                toast.style.display = 'block';
+                setTimeout(() => { toast.style.display = 'none'; }, 1000);
+            }
+        }
+
+        function modificarStockVariante(index, delta) {
+            const v = productoActualModal.variantes[index];
+            const nuevoStock = prompt(`Ajustar stock de ${v.color} (Actual: ${v.stock}):`, v.stock + delta);
+            if (nuevoStock !== null) {
+                const val = parseInt(nuevoStock, 10);
+                if (!isNaN(val)) {
+                    v.stock = val;
                     guardarBD();
-                    toggleModoEditarProd();
+                    renderVariantesModal();
                     renderProductos();
                 }
             }
         }
 
-        function eliminarProducto(prodId, nombre) {
-            if (confirm(`¿Quieres eliminar el producto "${nombre}" de esta categoría?`)) {
-                datos.productos = datos.productos.filter(p => p.id !== prodId);
+        function editarPrecioVariante(index) {
+            const v = productoActualModal.variantes[index];
+            const p = prompt(`Nuevo precio para ${v.color}:`, v.precio);
+            if (p !== null) {
+                const val = parseInt(p, 10);
+                if (!isNaN(val)) {
+                    v.precio = val;
+                    guardarBD();
+                    renderVariantesModal();
+                    renderProductos();
+                }
+            }
+        }
+
+        function editarNombreVariante(index) {
+            const v = productoActualModal.variantes[index];
+            const n = prompt(`Nuevo nombre para el color / variante:`, v.color);
+            if (n && n.trim() !== '') {
+                v.color = n.trim();
                 guardarBD();
-                toggleModoEliminarProd();
+                renderVariantesModal();
+            }
+        }
+
+        function eliminarVariante(index) {
+            if (confirm(`¿Eliminar este color/variante?`)) {
+                productoActualModal.variantes.splice(index, 1);
+                guardarBD();
+                renderVariantesModal();
                 renderProductos();
             }
         }
 
-        function sumarAlCarrito(nombreProd) {
-            if (datos.carritoHoy[nombreProd]) {
-                datos.carritoHoy[nombreProd] += 1;
-            } else {
-                datos.carritoHoy[nombreProd] = 1;
-            }
-            guardarBD();
+        function agregarNuevoColorVariante() {
+            const color = prompt('Nombre del nuevo color/tipo:');
+            if (color && color.trim() !== '') {
+                const stock = parseInt(prompt('Stock inicial:', '50'), 10) || 0;
+                const precio = parseInt(prompt('Precio:', '1200'), 10) || 0;
 
-            const toast = document.getElementById('toast');
-            toast.style.display = 'block';
-            setTimeout(() => { toast.style.display = 'none'; }, 1000);
+                productoActualModal.variantes.push({
+                    color: color.trim(),
+                    stock: stock,
+                    precio: precio
+                });
+
+                guardarBD();
+                renderVariantesModal();
+                renderProductos();
+            }
         }
 
+        function cerrarModalColores() {
+            document.getElementById('modal-colores').style.display = 'none';
+            productoActualModal = null;
+        }
+
+        // --- 4. CARRITO HOY Y HISTORIAL ---
         function renderCarritoHoy() {
             const cont = document.getElementById('contenedor-carrito-hoy');
             cont.innerHTML = '';
@@ -776,51 +591,41 @@
             nombres.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
 
             if (nombres.length === 0) {
-                cont.innerHTML = '<div style="text-align:center; color:#888; margin-top:20px;">No has agregado productos hoy.</div>';
+                cont.innerHTML = '<div style="text-align:center; color:#888; margin-top:20px;">No has agregado ventas hoy.</div>';
                 return;
             }
 
             nombres.forEach(nombre => {
-                const qty = datos.carritoHoy[nombre];
+                const item = datos.carritoHoy[nombre];
+                const qty = typeof item === 'object' ? item.cantidad : item;
+                const pr = typeof item === 'object' ? item.precio : 0;
+                const precioTxt = pr ? ` - $${(pr * qty).toLocaleString('es-CO')}` : '';
+
                 const row = document.createElement('div');
                 row.className = 'list-row';
                 row.innerHTML = `
-                    <div class="prod-name">${nombre}</div>
+                    <div class="prod-name">${nombre} <span style="font-size:0.8rem; color:#0056b3;">${precioTxt}</span></div>
                     <div class="controls">
-                        <button class="btn-circle btn-minus" onclick="modificarCantidad('${nombre}', -1)">-</button>
-                        <span class="qty-num">${qty}</span>
-                        <button class="btn-circle btn-plus" onclick="modificarCantidad('${nombre}', 1)">+</button>
+                        <button class="btn-circle btn-minus" onclick="modificarCantidadCarrito('${nombre}', -1)">-</button>
+                        <span>${qty}</span>
+                        <button class="btn-circle btn-plus" onclick="modificarCantidadCarrito('${nombre}', 1)">+</button>
                     </div>
                 `;
                 cont.appendChild(row);
             });
         }
 
-        function modificarCantidad(nombre, delta) {
+        function modificarCantidadCarrito(nombre, delta) {
             if (datos.carritoHoy[nombre]) {
-                datos.carritoHoy[nombre] += delta;
-                if (datos.carritoHoy[nombre] <= 0) {
+                if (typeof datos.carritoHoy[nombre] === 'number') {
+                    datos.carritoHoy[nombre] = { cantidad: datos.carritoHoy[nombre], precio: 0 };
+                }
+                datos.carritoHoy[nombre].cantidad += delta;
+                if (datos.carritoHoy[nombre].cantidad <= 0) {
                     delete datos.carritoHoy[nombre];
                 }
                 guardarBD();
                 renderCarritoHoy();
-            }
-        }
-
-        // --- MANEJO DE HISTORIAL ---
-        function toggleModoEliminarHist() {
-            modoEliminarHist = !modoEliminarHist;
-            const btn = document.getElementById('btn-del-hist');
-            const cont = document.getElementById('contenedor-historial-fechas');
-
-            if (modoEliminarHist) {
-                btn.classList.add('active-mode');
-                btn.innerText = '❌ CANCELAR BORRADO';
-                cont.classList.add('modo-eliminar');
-            } else {
-                btn.classList.remove('active-mode');
-                btn.innerText = '🗑️ ELIMINAR REGISTRO COMPLETO DE DÍA';
-                cont.classList.remove('modo-eliminar');
             }
         }
 
@@ -835,11 +640,11 @@
 
             datos.historialFechas.forEach((item, index) => {
                 const row = document.createElement('div');
-                row.className = 'list-row list-row-historial';
+                row.className = 'list-row';
                 row.style.cursor = 'pointer';
                 row.innerHTML = `
                     <div class="prod-name">📅 ${item.fecha} ${item.hora ? ' - ⏰ ' + item.hora : ''}</div>
-                    <button class="btn-view-prods" onclick="event.stopPropagation(); manejarClickHistorial(${index})">VER PRODUCTOS</button>
+                    <button class="nav-btn" style="background:#3b82f6; color:#fff;" onclick="event.stopPropagation(); manejarClickHistorial(${index})">VER</button>
                 `;
                 row.onclick = () => manejarClickHistorial(index);
                 cont.appendChild(row);
@@ -847,28 +652,22 @@
         }
 
         function manejarClickHistorial(index) {
-            if (modoEliminarHist) {
-                eliminarHistorial(index);
+            if (modos.Hist.eliminar) {
+                if (confirm(`¿Eliminar registro completo?`)) {
+                    datos.historialFechas.splice(index, 1);
+                    guardarBD();
+                    desactivarTodosModos();
+                    renderHistorial();
+                }
             } else {
                 verDetalleHistorial(index);
-            }
-        }
-
-        function eliminarHistorial(index) {
-            const item = datos.historialFechas[index];
-            if (confirm(`¿Quieres eliminar permanentemente el registro del ${item.fecha}?`)) {
-                datos.historialFechas.splice(index, 1);
-                guardarBD();
-                toggleModoEliminarHist();
-                renderHistorial();
             }
         }
 
         function verDetalleHistorial(index) {
             historialIndexActual = index;
             const item = datos.historialFechas[index];
-            document.getElementById('modal-titulo-fecha').innerText = `VENTAS: ${item.fecha} (${item.hora || ''})`;
-            
+            document.getElementById('modal-titulo-fecha').innerText = `VENTAS: ${item.fecha}`;
             renderListaModalHistorial();
             document.getElementById('modal-historial').style.display = 'flex';
         }
@@ -879,15 +678,11 @@
 
             const item = datos.historialFechas[historialIndexActual];
             let nombres = Object.keys(item.productos);
-            nombres.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
-
-            if (nombres.length === 0) {
-                contModal.innerHTML = '<div style="text-align:center; color:#888;">No quedan productos en esta lista.</div>';
-                return;
-            }
 
             nombres.forEach(nombre => {
-                const qty = item.productos[nombre];
+                const val = item.productos[nombre];
+                const qty = typeof val === 'object' ? val.cantidad : val;
+
                 const r = document.createElement('div');
                 r.className = 'list-row';
                 r.style.marginBottom = '8px';
@@ -897,35 +692,28 @@
                         <button class="btn-circle btn-minus" onclick="modificarCantidadHistorial('${nombre}', -1)">-</button>
                         <span>${qty}</span>
                         <button class="btn-circle btn-plus" onclick="modificarCantidadHistorial('${nombre}', 1)">+</button>
-                        <button class="btn-icon" onclick="renombrarProductoHistorial('${nombre}')">✏️</button>
-                        <button class="btn-icon" style="background-color:#dc3545;" onclick="eliminarProductoHistorial('${nombre}')">🗑️</button>
+                        <button class="btn-icon" style="background:#dc3545;" onclick="eliminarProductoHistorial('${nombre}')">🗑️</button>
                     </div>
                 `;
                 contModal.appendChild(r);
             });
         }
 
-        // NUEVA FUNCIÓN: Agregar un producto directamente al historial seleccionado
         function agregarProductoFaltanteHistorial() {
-            const nombre = prompt('Ingresa el nombre del producto que quieres agregar a este historial:');
+            const nombre = prompt('Nombre del producto:');
             if (nombre && nombre.trim() !== '') {
-                const cantStr = prompt(`¿Qué cantidad de "${nombre.trim()}" vas a agregar?`, '1');
-                const cantidad = parseInt(cantStr, 10);
-
+                const cantidad = parseInt(prompt(`Cantidad:`, '1'), 10);
                 if (!isNaN(cantidad) && cantidad > 0) {
                     const item = datos.historialFechas[historialIndexActual];
-                    const nombreLimpio = nombre.trim();
-
-                    if (item.productos[nombreLimpio]) {
-                        item.productos[nombreLimpio] += cantidad;
+                    const n = nombre.trim();
+                    if (item.productos[n]) {
+                        if (typeof item.productos[n] === 'object') item.productos[n].cantidad += cantidad;
+                        else item.productos[n] += cantidad;
                     } else {
-                        item.productos[nombreLimpio] = cantidad;
+                        item.productos[n] = { cantidad: cantidad, precio: 0 };
                     }
-
                     guardarBD();
                     renderListaModalHistorial();
-                } else {
-                    alert('Por favor ingresa una cantidad válida mayor a 0.');
                 }
             }
         }
@@ -933,39 +721,26 @@
         function modificarCantidadHistorial(nombreProd, delta) {
             const item = datos.historialFechas[historialIndexActual];
             if (item.productos[nombreProd]) {
-                item.productos[nombreProd] += delta;
-                if (item.productos[nombreProd] <= 0) {
-                    delete item.productos[nombreProd];
+                if (typeof item.productos[nombreProd] === 'object') {
+                    item.productos[nombreProd].cantidad += delta;
+                    if (item.productos[nombreProd].cantidad <= 0) delete item.productos[nombreProd];
+                } else {
+                    item.productos[nombreProd] += delta;
+                    if (item.productos[nombreProd] <= 0) delete item.productos[nombreProd];
                 }
                 guardarBD();
                 renderListaModalHistorial();
             }
         }
 
-        function renombrarProductoHistorial(nombreViejo) {
-            const nuevoNombre = prompt('Cambiar nombre del producto en este historial:', nombreViejo);
-            if (nuevoNombre && nuevoNombre.trim() !== '' && nuevoNombre.trim() !== nombreViejo) {
-                const item = datos.historialFechas[historialIndexActual];
-                const cantidadActual = item.productos[nombreViejo];
-                
-                delete item.productos[nombreViejo];
-                item.productos[nuevoNombre.trim()] = cantidadActual;
-                
-                guardarBD();
-                renderListaModalHistorial();
-            }
-        }
-
         function eliminarProductoHistorial(nombreProd) {
-            if (confirm(`¿Quitar "${nombreProd}" de este registro guardado?`)) {
-                const item = datos.historialFechas[historialIndexActual];
-                delete item.productos[nombreProd];
-                guardarBD();
-                renderListaModalHistorial();
-            }
+            const item = datos.historialFechas[historialIndexActual];
+            delete item.productos[nombreProd];
+            guardarBD();
+            renderListaModalHistorial();
         }
 
-        function cerrarModal() {
+        function cerrarModalHistorial() {
             document.getElementById('modal-historial').style.display = 'none';
             renderHistorial();
         }
@@ -976,51 +751,26 @@
                 return;
             }
 
-            if (confirm('¿Seguro que quieres guardar el carrito del día de hoy en el historial?')) {
+            if (confirm('¿Guardar el carrito de hoy en el historial?')) {
                 const ahora = new Date();
                 const horaStr = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 
                 datos.historialFechas.unshift({
                     fecha: strFecha,
                     hora: horaStr,
-                    productos: { ...datos.carritoHoy }
+                    productos: JSON.parse(JSON.stringify(datos.carritoHoy))
                 });
 
                 datos.carritoHoy = {};
                 guardarBD();
-                alert('¡Día guardado en el Historial con éxito!');
+                alert('¡Guardado con éxito!');
                 verPantalla('pantalla-historial');
             }
         }
 
-        function agregarNuevaCategoria() {
-            const nombre = prompt('Nombre de la categoría:');
-            if (nombre) {
-                datos.categorias.push({ id: 'cat_' + Date.now(), nombre: nombre.trim() });
-                guardarBD();
-                renderCategorias();
-            }
-        }
-
-        function agregarNuevoProducto() {
-            const nombre = prompt('Nombre del producto:');
-            if (nombre && catSeleccionada) {
-                datos.productos.push({ id: 'p_' + Date.now(), catId: catSeleccionada, nombre: nombre.trim() });
-                guardarBD();
-                renderProductos();
-            }
-        }
-
-        function filtrarCategorias() {
-            const txt = document.getElementById('search-cat').value.toLowerCase();
-            document.querySelectorAll('#contenedor-categorias .card-blue').forEach(card => {
-                card.style.display = card.innerText.toLowerCase().includes(txt) ? 'flex' : 'none';
-            });
-        }
-
-        function filtrarProductos() {
-            const txt = document.getElementById('search-prod').value.toLowerCase();
-            document.querySelectorAll('#contenedor-productos .card-blue').forEach(card => {
+        function filtrarCards(contenedorId, texto) {
+            const txt = texto.toLowerCase();
+            document.querySelectorAll(`#${contenedorId} .card-product`).forEach(card => {
                 card.style.display = card.innerText.toLowerCase().includes(txt) ? 'flex' : 'none';
             });
         }
