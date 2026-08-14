@@ -479,8 +479,7 @@
                         <button class="nav-btn" style="background:#28a745; color:#fff;" onclick="venderColor('${v.color}', ${v.precio})">🛒 VENDER</button>
                     </div>
                     <div class="color-actions">
-                        <button class="btn-icon" style="background:#28a745;" onclick="modificarStockVariante(${index}, 10)">+10 Stock</button>
-                        <button class="btn-icon" style="background:#dc3545;" onclick="modificarStockVariante(${index}, -10)">-10 Stock</button>
+                        <button class="btn-icon" style="background:#28a745;" onclick="modificarStockVariante(${index})">✏️ Stock</button>
                         <button class="btn-icon" style="background:#ffc107; color:#000;" onclick="editarPrecioVariante(${index})">✏️ Precio</button>
                         <button class="btn-icon" style="background:#17a2b8;" onclick="editarNombreVariante(${index})">✏️ Nombre del producto</button>
                         <button class="btn-icon" style="background:#dc3545;" onclick="eliminarVariante(${index})">🗑️</button>
@@ -517,9 +516,9 @@
             }
         }
 
-        function modificarStockVariante(index, delta) {
+        function modificarStockVariante(index) {
             const v = productoActualModal.variantes[index];
-            const nuevoStock = prompt(`Ajustar stock de ${v.color} (Actual: ${v.stock}):`, v.stock + delta);
+            const nuevoStock = prompt(`Ajustar stock de ${v.color} (Actual: ${v.stock}):`, v.stock);
             if (nuevoStock !== null) {
                 const val = parseInt(nuevoStock, 10);
                 if (!isNaN(val)) {
