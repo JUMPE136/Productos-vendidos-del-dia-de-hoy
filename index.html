@@ -45,7 +45,7 @@
         }
 
         /* Contenedor Principal */
-        .container { max-width: 650px; margin: 20px auto; padding: 0 15px; }
+        .container { max-width: 650px; margin: 15px auto; padding: 0 10px; }
 
         /* Ruta de Navegación / Breadcrumb */
         .breadcrumb-bar { background-color: #1c1c1c; padding: 10px 15px; border-radius: 8px; margin-bottom: 12px; font-size: 0.9rem; color: #ffffff; font-weight: bold; }
@@ -57,8 +57,8 @@
         .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #666; font-size: 0.9rem; }
 
         /* Botones de Acción */
-        .actions-group { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-        .action-btn { flex: 1; min-width: 100px; border: none; padding: 8px 4px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; cursor: pointer; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 4px; }
+        .actions-group { display: flex; gap: 6px; margin-bottom: 15px; flex-wrap: wrap; }
+        .action-btn { flex: 1 1 calc(50% - 6px); min-width: 110px; border: none; padding: 8px 4px; border-radius: 6px; font-weight: bold; font-size: 0.7rem; cursor: pointer; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 4px; text-align: center; }
         
         .btn-add { background-color: #82b1ff; color: #000000; }
         .btn-edit { background-color: #ffc107; color: #000000; }
@@ -66,13 +66,34 @@
         .btn-delete { background-color: #dc3545; color: #ffffff; }
         .action-btn.active-mode { background-color: #fd7e14; color: #ffffff; }
 
-        /* Vistas y Grillas */
+        /* Vistas y Grilla de 3 Columnas */
         .view { display: none; }
         .view.active { display: block; }
-        .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
+        
+        .grid-cards { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); /* 3 COLUMNAS EXACTAS */
+            gap: 8px; 
+        }
 
-        .card-product { background-color: #82b1ff; color: #000000; border-radius: 12px; padding: 25px 15px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem; }
-        .card-icon { font-size: 1.8rem; margin-bottom: 8px; }
+        .card-product { 
+            background-color: #82b1ff; 
+            color: #000000; 
+            border-radius: 10px; 
+            padding: 12px 6px; 
+            text-align: center; 
+            cursor: pointer; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            font-weight: bold; 
+            font-size: 0.8rem; 
+            line-height: 1.15;
+            min-height: 90px;
+            word-break: break-word;
+        }
+        .card-icon { font-size: 1.4rem; margin-bottom: 5px; }
 
         .modo-eliminar .card-product { border: 2px dashed #dc3545; background-color: #f8d7da; color: #842029; }
         .modo-editar .card-product { border: 2px dashed #ffc107; background-color: #fff3cd; color: #664d03; }
@@ -186,7 +207,7 @@
     <!-- PANTALLITA FLOTANTE (MODAL) PARA SELECCIONAR / EDITAR COLORES -->
     <div class="modal" id="modal-colores">
         <div class="modal-content">
-            <h3 id="modal-prod-nombre" style="color: #82b1ff; font-size: 1.3rem;">Basura</h3>
+            <h3 id="modal-prod-nombre" style="color: #82b1ff; font-size: 1.3rem;">Producto</h3>
             <p style="font-size: 0.9rem; margin: 8px 0 15px 0; color: #ccc; font-weight: bold;">Color:</p>
             
             <div id="lista-colores-modal"></div>
@@ -239,11 +260,10 @@
                 { 
                     id: 'p1', 
                     catId: 'cat_bolsas', 
-                    nombre: 'Basura',
+                    nombre: 'Bolsa manija 1.5kg',
                     precioBase: 1200,
                     variantes: [
-                        { color: 'Blanca', stock: 100, precio: 1200 },
-                        { color: 'bolsa', stock: 50, precio: 1200 }
+                        { color: 'Blanca', stock: 100, precio: 1200 }
                     ]
                 }
             ],
@@ -251,14 +271,13 @@
             historialFechas: []
         };
 
-        // Escuchar cambios en tiempo real desde la nube Firebase
+        // Escuchar cambios en tiempo real desde Firebase
         onSnapshot(docRef, (docSnap) => {
             if (docSnap.exists()) {
                 window.datos = docSnap.data();
                 document.getElementById('status-sync').innerText = '☁️';
                 document.getElementById('status-sync').style.background = '#28a745';
                 
-                // Refrescar vistas activas
                 const vistaActiva = document.querySelector('.view.active').id;
                 if (vistaActiva === 'pantalla-categorias') renderCategorias();
                 if (vistaActiva === 'pantalla-productos') renderProductos();
@@ -276,7 +295,7 @@
             }
         });
 
-        // Función global para guardar en Firebase
+        // Guardar en Firebase
         window.guardarBD = async function() {
             try {
                 document.getElementById('status-sync').innerText = '⏳';
