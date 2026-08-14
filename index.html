@@ -59,8 +59,10 @@
         /* Estilos Carrito e Historial */
         .title-sec { text-align: center; font-size: 1.1rem; margin-bottom: 5px; color: #fff; font-weight: bold; }
         .date-sec { text-align: center; font-size: 0.9rem; color: #82b1ff; margin-bottom: 20px; }
+        .total-sec { text-align: center; font-size: 1.1rem; color: #82b1ff; font-weight: bold; margin-top: 6px; margin-bottom: 15px; background: #1a1a1a; padding: 8px; border-radius: 6px; border: 1px solid #3b82f6; }
+        
         .list-row { background-color: #82b1ff; color: #000; border-radius: 10px; padding: 12px 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
-        .prod-name { font-size: 0.95rem; flex: 1; }
+        .prod-name { font-size: 0.95rem; flex: 1; text-align: left; }
         .controls { display: flex; align-items: center; gap: 8px; }
         .btn-circle { width: 32px; height: 32px; border-radius: 50%; border: none; color: #fff; font-weight: bold; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .btn-icon { background-color: #000; color: #fff; border: none; padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
@@ -174,8 +176,11 @@
     <!-- Modal Historial Detalle -->
     <div class="modal" id="modal-historial">
         <div class="modal-content">
-            <div class="title-sec" id="modal-titulo-fecha">FECHA Y HORA</div>
-            <div id="modal-lista-productos" style="margin: 20px 0;"></div>
+            <div class="title-sec" id="modal-titulo-fecha">VENTAS: --/--/----</div>
+            <div class="total-sec" id="modal-total-dia">TOTAL VENDIDO: $0</div>
+            
+            <div id="modal-lista-productos" style="margin: 15px 0;"></div>
+            
             <button class="btn-save-day" style="background-color: #28a745;" onclick="agregarProductoFaltanteHistorial()">+ AGREGAR FALTANTE</button>
             <button class="btn-save-day" style="background-color: #dc3545; margin-top: 10px;" onclick="cerrarModalHistorial()">CERRAR</button>
         </div>
@@ -444,7 +449,7 @@
             }
         }
 
-        // --- 3. PANTALLA FLOTANTE / MODAL ---
+        // --- 3. MODAL VARIANTES ---
         function abrirModalColores(producto) {
             productoActualModal = producto;
             document.getElementById('modal-prod-nombre').innerText = producto.nombre;
@@ -642,9 +647,13 @@
                 const row = document.createElement('div');
                 row.className = 'list-row';
                 row.style.cursor = 'pointer';
+
+                const btnTexto = modos.Hist.eliminar ? '🗑️ BORRAR' : 'VER';
+                const btnColor = modos.Hist.eliminar ? '#dc3545' : '#3b82f6';
+
                 row.innerHTML = `
                     <div class="prod-name">📅 ${item.fecha} ${item.hora ? ' - ⏰ ' + item.hora : ''}</div>
-                    <button class="nav-btn" style="background:#3b82f6; color:#fff;" onclick="event.stopPropagation(); manejarClickHistorial(${index})">VER</button>
+                    <button class="nav-btn" style="background:${btnColor}; color:#fff;" onclick="event.stopPropagation(); manejarClickHistorial(${index})">${btnTexto}</button>
                 `;
                 row.onclick = () => manejarClickHistorial(index);
                 cont.appendChild(row);
@@ -653,7 +662,8 @@
 
         function manejarClickHistorial(index) {
             if (modos.Hist.eliminar) {
-                if (confirm(`¿Eliminar registro completo?`)) {
+                const fechaStr = datos.historialFechas[index].fecha;
+                if (confirm(`¿Eliminar registro completo del día ${fechaStr}?`)) {
                     datos.historialFechas.splice(index, 1);
                     guardarBD();
                     desactivarTodosModos();
@@ -678,16 +688,26 @@
 
             const item = datos.historialFechas[historialIndexActual];
             let nombres = Object.keys(item.productos);
+            let totalDia = 0;
+
+            if (nombres.length === 0) {
+                contModal.innerHTML = '<div style="color:#aaa; padding:10px;">No hay productos registrados en este día.</div>';
+            }
 
             nombres.forEach(nombre => {
                 const val = item.productos[nombre];
                 const qty = typeof val === 'object' ? val.cantidad : val;
+                const pr = typeof val === 'object' ? val.precio : 0;
+                const subtotal = pr * qty;
+                totalDia += subtotal;
+
+                const precioTxt = pr ? ` - $${subtotal.toLocaleString('es-CO')}` : '';
 
                 const r = document.createElement('div');
                 r.className = 'list-row';
                 r.style.marginBottom = '8px';
                 r.innerHTML = `
-                    <div class="prod-name">${nombre}</div>
+                    <div class="prod-name">${nombre} <span style="font-size:0.8rem; color:#0056b3;">${precioTxt}</span></div>
                     <div class="controls">
                         <button class="btn-circle btn-minus" onclick="modificarCantidadHistorial('${nombre}', -1)">-</button>
                         <span>${qty}</span>
@@ -697,6 +717,8 @@
                 `;
                 contModal.appendChild(r);
             });
+
+            document.getElementById('modal-total-dia').innerText = `TOTAL VENDIDO: $${totalDia.toLocaleString('es-CO')}`;
         }
 
         function agregarProductoFaltanteHistorial() {
@@ -704,14 +726,21 @@
             if (nombre && nombre.trim() !== '') {
                 const cantidad = parseInt(prompt(`Cantidad:`, '1'), 10);
                 if (!isNaN(cantidad) && cantidad > 0) {
+                    const precio = parseInt(prompt(`Precio unitario ($):`, '1200'), 10) || 0;
                     const item = datos.historialFechas[historialIndexActual];
                     const n = nombre.trim();
+
                     if (item.productos[n]) {
-                        if (typeof item.productos[n] === 'object') item.productos[n].cantidad += cantidad;
-                        else item.productos[n] += cantidad;
+                        if (typeof item.productos[n] === 'object') {
+                            item.productos[n].cantidad += cantidad;
+                            if (precio > 0) item.productos[n].precio = precio;
+                        } else {
+                            item.productos[n] = { cantidad: item.productos[n] + cantidad, precio: precio };
+                        }
                     } else {
-                        item.productos[n] = { cantidad: cantidad, precio: 0 };
+                        item.productos[n] = { cantidad: cantidad, precio: precio };
                     }
+
                     guardarBD();
                     renderListaModalHistorial();
                 }
